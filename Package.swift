@@ -15,10 +15,6 @@ let package = Package(
         .library(
             name: "SwiftRecast",
             targets: ["SwiftRecast"]),
-        .library(
-            name: "SwiftDetour",
-            targets: ["SwiftDetour"]),
-
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -29,17 +25,10 @@ let package = Package(
             swiftSettings: [.interoperabilityMode(.Cxx)]
         ),
         .target(
-            name: "SwiftDetour",
-            dependencies: ["CDetour"],
-            swiftSettings: [.interoperabilityMode(.Cxx)]
-        ),
-        .target(
             name: "CRecast"),
-        .target(
-            name: "CDetour"),
         .testTarget(
-            name: "DetourTests",
-            dependencies: ["SwiftDetour"],
+            name: "RecastTests",
+            dependencies: ["SwiftRecast"],
             swiftSettings: [.interoperabilityMode(.Cxx)]),
     ]
 )

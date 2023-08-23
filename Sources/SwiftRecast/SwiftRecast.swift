@@ -8,7 +8,12 @@
 import Foundation
 import CRecast
 
-
+/// Creates a navigational mesh based on a geometry provided by vertices and triangles
+///
+/// The constructor takes both your data and a configuration object with various settings
+/// that describe the kind of mesh that you want to create.   The configuration object
+/// contains various defaults already set which should work for most situations.
+///
 public class Navmesh {
     /// The possible styles for partitioning the heightfield
     public enum PartitionStyle: Int32 {
@@ -37,9 +42,6 @@ public class Navmesh {
         case layer
     }
     
-    public enum NavmeshError: Error {
-        case cannotCreateHeightField
-    }
     /// Specifies a configuration to use when performing Recast builds.
     /// The is a convenience structure that represents an aggregation of parameters
     /// used at different stages in the Recast build process. Some
@@ -274,12 +276,43 @@ public class Navmesh {
         /// data. (For height detail only.) [Limit: >=0] [Units: wu].
         public var detailSampleMaxError: Float
         
+        /// If set, this will marks non-walkable spans as walkable if their maximum is within ``walkableClimb`` of a walkable neighbor.
+        ///
+        /// Allows the formation of walkable regions that will flow over low lying
+        /// objects such as curbs, and up structures such as stairways.
+        ///
+        /// Two neighboring spans are walkable if: `(currentSpan.smax - neighborSpan.smax) < walkableClimb`
+        ///
+        /// Defaults to false
+        public var filterLowHangingObstables: Bool
+        
+        /// If set, marks walkable spans as not walkable if the clearance above the span is less than the specified height.
+        ///
+        /// For this filter, the clearance above the span is the distance from the span's
+        /// maximum to the next higher span's minimum. (Same grid column.)
+        ///
+        /// Defaults to false
+        public var filterWalkableLowHeightSpans: Bool
+        
+        /// Marks spans that are ledges as not-walkable.
+        ///
+        /// A ledge is a span with one or more neighbors whose maximum is further away than ``walkableClimb``
+        /// from the current span's maximum.
+        /// This method removes the impact of the overestimation of conservative voxelization
+        /// so the resulting mesh will not have regions hanging in the air over ledges.
+        ///
+        /// A span is a ledge if: `abs(currentSpan.smax - neighborSpan.smax) > walkableClimb`
+        ///
+        /// Defaults to false
+        public var filterLedgeSpans: Bool
         /// Constructs the configuration object, sets the various properties, additional information on meaning of these parameters
         /// is availale in the property documentation for each one.
         ///
         /// - Parameters:
-        ///   - width: The width of the field along the x-axis. [Limit: >= 0] [Units: vx].  Optional, if not set, it gets computed from the boundaries and cellSize
-        ///   - height: The height of the field along the z-axis. [Limit: >= 0] [Units: vx].  Optional, if not set, it gets computed from the boundaries and cellSize
+        ///   - width: The width of the field along the x-axis. [Limit: >= 0] [Units: vx].
+        ///     Optional, if not set, it gets computed from the boundaries and cellSize
+        ///   - height: The height of the field along the z-axis. [Limit: >= 0] [Units: vx].
+        ///     Optional, if not set, it gets computed from the boundaries and cellSize
         ///   - tileSize: The width/height size of tile's on the xz-plane. [Limit: >= 0] [Units: vx]. This field is only used when building multi-tile meshes.
         ///     Defaults to 32.
         ///   - borderSize: This value represents the the closest the walkable area of the heightfield
@@ -328,7 +361,10 @@ public class Navmesh {
                     mergeRegionArea: Int32 = 400,
                     maxVertsPerPoly: Int32 = 6,
                     detailSampleDist: Float = 6,
-                    detailSampleMaxError: Float = 1) {
+                    detailSampleMaxError: Float = 1,
+                    filterLowHangingObstables: Bool = false,
+                    filterLedgeSpans: Bool = false,
+                    filterWalkableLowHeightSpans: Bool = false) {
             self.width = width
             self.height = height
             self.tileSize = tileSize
@@ -349,6 +385,9 @@ public class Navmesh {
             self.detailSampleDist = detailSampleDist
             self.detailSampleMaxError = detailSampleMaxError
             self.partitionStyle = partitionStyle
+            self.filterLowHangingObstables = filterLowHangingObstables
+            self.filterLedgeSpans = filterLedgeSpans
+            self.filterWalkableLowHeightSpans = filterWalkableLowHeightSpans
         }
     }
     
@@ -376,6 +415,15 @@ public class Navmesh {
         try self.init (vertices: Navmesh.flatten (vertices), triangles: triangles, config: config, debug: debug)
     }
     
+    // Low-level data return by the bulk mesh generation api.
+    var llData: UnsafeMutablePointer<BindingBulkResult>
+    
+    /// Creates a new Navmesh from an array of vertices and a configuration
+    /// - Parameters:
+    ///  - vertices: an array of floating point values that contain 3 floating point values per vertix (x, y, z)
+    ///  - triangles: triangle index array
+    ///  - config: configuration for the creation of this mesh
+    ///  - debug: whether you want to run in debug mode or not, debug will enable logging and timers
     public init (vertices: [Float], triangles: [Int32], config: Config, debug: Bool = true) throws {
         let bmin, bmax: SIMD3<Float>
         
@@ -444,16 +492,127 @@ public class Navmesh {
         case .layer:
             flags = Int32 (PARTITION_LAYER)
         }
+        flags |= config.filterLedgeSpans ? Int32 (FILTER_LEDGE_SPANS) : 0
+        flags |= config.filterLowHangingObstables ? Int32 (FILTER_LOW_HANGING_OBSTACLES) : 0
+        flags |= config.filterWalkableLowHeightSpans ? Int32 (FILTER_WALKABLE_LOW_HEIGHT_SPANS) : 0
         
-        // TODO:
-        // Add the filter options to flags
         let ret = vertices.withUnsafeBufferPointer { ptr in
             ptr.withMemoryRebound(to: Float.self) { vertPtr in
                 triangles.withUnsafeBufferPointer { trianglePtr in
-                    let v = bindingRunBulk (&cfg, flags, vertPtr.baseAddress, Int32 (vertices.count/3), trianglePtr.baseAddress, Int32(triangles.count/3))
+                    bindingRunBulk (&cfg, flags, vertPtr.baseAddress, Int32 (vertices.count/3), trianglePtr.baseAddress, Int32(triangles.count/3))
                 }
             }
         }
+        guard let ret else {
+            throw NavmeshError.memory
+        }
+        switch ret.pointee.code {
+        case BCODE_OK:
+            break
+        case BCODE_ERR_MEMORY:
+            throw NavmeshError.memory
+        case BCODE_ERR_RASTERIZE:
+            throw NavmeshError.rasterize
+        case BCODE_ERR_BUILD_COMPACT_HEIGHTFIELD:
+            throw NavmeshError.buildCompactHeightfield
+        case BCODE_ERR_BUILD_LAYER_REGIONS:
+            throw NavmeshError.buildLayerRegions
+        case BCODE_ERR_BUILD_REGIONS_MONOTONE:
+            throw NavmeshError.buildRegionsMonotone
+        case BCODE_ERR_BUILD_DISTANCE_FIELD:
+            throw NavmeshError.buildDistanceField
+        case BCODE_ERR_BUILD_REGIONS:
+            throw NavmeshError.buildRegions
+        case BCODE_ERR_ALLOC_CONTOUR:
+            throw NavmeshError.allocCountour
+        case BCODE_ERR_BUILD_CONTOUR:
+            throw NavmeshError.buildContour
+        case BCODE_ERR_ALLOC_POLYMESH:
+            throw NavmeshError.allocPolyMesh
+        case BCODE_ERR_BUILD_POLY_MESH:
+            throw NavmeshError.buildPolyMesh
+        case BCODE_ERR_ALLOC_DETAIL_POLY_MESH:
+            throw NavmeshError.allocDetailPolyMesh
+        case BCODE_ERR_BUILD_DETAIL_POLY_MESH:
+            throw NavmeshError.buildDetailPolyMesh
+        default:
+            throw NavmeshError.unknown
+        }
         
+        llData = ret
     }
+    
+    /// Returns a representation suitable for navigation, but also to be stored on disk
+    /// or transferred
+    public func makeNavigation (agentHeight: Float, agentRadius: Float, agentMaxClimb: Float) throws -> Data {
+        var ptr: UnsafeMutableRawPointer?
+        var size: Int32 = 0
+        let r = bindingGenerateDetour(llData, agentHeight, agentRadius, agentMaxClimb, &ptr, &size)
+        
+        switch r {
+        case BD_OK:
+            break;
+        case BD_ERR_VERTICES:
+            throw NavBuilderError.vertices
+        case BD_ERR_ALLOC_NAVMESH:
+            throw NavBuilderError.alloc
+        case BD_ERR_BUILD_NAVMESH:
+            throw NavBuilderError.build
+        default:
+            throw NavmeshError.unknown
+        }
+        if ptr == nil {
+            throw NavmeshError.unknown
+        }
+        return Data (bytesNoCopy: ptr!, count: Int(size), deallocator: .free)
+    }
+    
+    deinit {
+        bindingRelease(llData)
+    }
+
+    /// Errors raised when we attempt to turn the navigation data into navigational data
+    public enum NavBuilderError: Error {
+        /// The number of vertices used for this configuration exceeds the limit that is supported
+        /// by Detour.
+        case vertices
+        /// There was a problem allocating the data structures necessary for this mesh
+        case alloc
+        /// There was an error creating the navigational mesh
+        case build
+    }
+    /// Errors thrown by the creation of the mesh object
+    public enum NavmeshError: Error {
+        /// There was no memory available to allocate
+        case memory
+        /// It was not possible to create the heightfield
+        case cannotCreateHeightField
+        /// Error during triangle rasterization
+        case rasterize
+        /// Error building the compact height field
+        case buildCompactHeightfield
+        /// Error building the layer regions (when using ``PartitionType.layer``
+        case buildLayerRegions
+        /// Error building the monotone regions (when using ``PartitionLayer.monotone``
+        case buildRegionsMonotone
+        /// Error building the distance field (when using ``PartitionLayer.watershed``)
+        case buildDistanceField
+        /// Error building the regions (when using ``PartitionLayer.watershed``)
+        case buildRegions
+        /// Not enough memory to allocate the contour
+        case allocCountour
+        /// Error while building the contour
+        case buildContour
+        /// Internal library error, an unhandled case, should never happen
+        case unknown
+        /// Not enough memory to allocate the poly mesh
+        case allocPolyMesh
+        /// Error buildling the poly mesh
+        case buildPolyMesh
+        /// Not enough memory to allocate the detailed poly mesh
+        case allocDetailPolyMesh
+        /// Error buildling the detailed poly mesh
+        case buildDetailPolyMesh
+    }
+
 }
