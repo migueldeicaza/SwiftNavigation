@@ -18,6 +18,7 @@
 
 #ifndef DETOURNAVMESH_H
 #define DETOURNAVMESH_H
+#import <swift/bridging>
 
 #include "DetourAlloc.h"
 #include "DetourStatus.h"
@@ -674,7 +675,7 @@ private:
 #endif
 
 	friend class dtNavMeshQuery;
-};
+} SWIFT_UNSAFE_REFERENCE;
 
 /// Allocates a navigation mesh object using the Detour allocator.
 /// @return A navigation mesh that is ready for initialization, or null on failure.

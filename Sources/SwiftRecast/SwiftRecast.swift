@@ -437,7 +437,7 @@ public class Navmesh {
                         minPtr.withMemoryRebound(to: Float.self, capacity: 3) { minPtrCast in
                             withUnsafeMutablePointer(to: &maxBounds) { maxPtr in
                                 maxPtr.withMemoryRebound(to: Float.self, capacity: 3) { maxPtrCast in
-                                    rcCalcBounds(castPtr.baseAddress, Int32 (vertices.count), minPtrCast, maxPtrCast)
+                                    rcCalcBounds(castPtr.baseAddress, Int32 (vertices.count/3), minPtrCast, maxPtrCast)
                                 }
                             }
                         }
@@ -544,7 +544,7 @@ public class Navmesh {
     
     /// Returns a representation suitable for navigation, but also to be stored on disk
     /// or transferred
-    public func makeNavigation (agentHeight: Float, agentRadius: Float, agentMaxClimb: Float) throws -> Data {
+    public func makeNavigationBlob (agentHeight: Float, agentRadius: Float, agentMaxClimb: Float) throws -> Data {
         var ptr: UnsafeMutableRawPointer?
         var size: Int32 = 0
         let r = bindingGenerateDetour(llData, agentHeight, agentRadius, agentMaxClimb, &ptr, &size)
@@ -566,7 +566,31 @@ public class Navmesh {
         }
         return Data (bytesNoCopy: ptr!, count: Int(size), deallocator: .free)
     }
-    
+
+    @available(macOS 13.3.0, *)
+    public func makeNavigationDetour (agentHeight: Float, agentRadius: Float, agentMaxClimb: Float) throws -> Detour {
+        var ptr: UnsafeMutableRawPointer?
+        var size: Int32 = 0
+        let r = bindingGenerateDetour(llData, agentHeight, agentRadius, agentMaxClimb, &ptr, &size)
+        
+        switch r {
+        case BD_OK:
+            break;
+        case BD_ERR_VERTICES:
+            throw NavBuilderError.vertices
+        case BD_ERR_ALLOC_NAVMESH:
+            throw NavBuilderError.alloc
+        case BD_ERR_BUILD_NAVMESH:
+            throw NavBuilderError.build
+        default:
+            throw NavmeshError.unknown
+        }
+        if ptr == nil {
+            throw NavmeshError.unknown
+        }
+        return try Detour (ptr!, size: size)
+    }
+
     deinit {
         bindingRelease(llData)
     }
