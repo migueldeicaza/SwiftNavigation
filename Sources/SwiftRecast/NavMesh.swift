@@ -1,12 +1,12 @@
-// The Swift Programming Language
-// https://docs.swift.org/swift-book
 import Foundation
 import CRecast
 
 @available(macOS 13.3.0, *)
-public class Detour {
+
+/// Mesh that can be navigated
+public class NavMesh {
     /// Errors that are surfaced by the Detour API.
-    public enum DetourError: Error {
+    public enum NavMeshError: Error {
         /// Input data is not recognized.
         case wrongMagic
         /// Input data is in wrong version.
@@ -27,7 +27,7 @@ public class Detour {
         case unknown
     }
     
-    static func statusToError (_ status: dtStatus) -> DetourError {
+    static func statusToError (_ status: dtStatus) -> NavMeshError {
         let v = status & DT_STATUS_DETAIL_MASK
         switch v {
         case DT_WRONG_MAGIC:
@@ -56,11 +56,11 @@ public class Detour {
     /// Creates a Detour from a binary blob
     public init (_ blob: Data) throws {
         guard let handle = dtAllocNavMesh() else {
-            throw DetourError.alloc
+            throw NavMeshError.alloc
         }
         guard var copy = malloc (blob.count) else {
             dtFreeNavMesh(handle)
-            throw DetourError.alloc
+            throw NavMeshError.alloc
         }
         _ = blob.withUnsafeBytes { ptr in
             memcpy (copy, ptr.baseAddress, blob.count)
@@ -69,20 +69,28 @@ public class Detour {
         let status = handle.`init`(copy, Int32(blob.count), Int32 (DT_TILE_FREE_DATA.rawValue))
         if dtStatusFailed(status) {
             dtFreeNavMesh(handle)
-            throw Detour.statusToError (status)
+            throw NavMesh.statusToError (status)
         }
         navMesh = handle
     }
     
     init (_ ptr: UnsafeMutableRawPointer, size: Int32) throws {
         guard let handle = dtAllocNavMesh() else {
-            throw DetourError.alloc
+            throw NavMeshError.alloc
         }
         let status = handle.`init`(ptr, size, Int32 (DT_TILE_FREE_DATA.rawValue))
         if dtStatusFailed(status) {
             dtFreeNavMesh(handle)
-            throw Detour.statusToError (status)
+            throw NavMesh.statusToError (status)
         }
         navMesh = handle
+    }
+    
+    /// Creates a query object, used to find paths
+    /// - Parameters:
+    ///  - maxNodes: Maximum number of search nodes. [Limits: 0 < value <= 65535]
+    /// - Returns: the nav mesh query, or throws an exception on error.
+    public func makeQuery (maxNodes: Int32 = 2048) throws -> NavMeshQuery {
+        return try NavMeshQuery(nav: self, maxNodes: maxNodes)
     }
 }

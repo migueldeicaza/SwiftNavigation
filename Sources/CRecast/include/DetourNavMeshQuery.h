@@ -21,7 +21,7 @@
 
 #include "DetourNavMesh.h"
 #include "DetourStatus.h"
-
+#import <swift/bridging>
 
 // Define DT_VIRTUAL_QUERYFILTER if you wish to derive a custom filter from dtQueryFilter.
 // On certain platforms indirect or virtual function call is expensive. The default
@@ -117,7 +117,10 @@ public:
 
 	///@}
 
-};
+} SWIFT_UNSAFE_REFERENCE;
+
+dtQueryFilter *dtAllocQueryFilter();
+void dtFreeQueryFilter (dtQueryFilter *value);
 
 /// Provides information about raycast hit
 /// filled by dtNavMeshQuery::raycast
@@ -575,7 +578,7 @@ private:
 	class dtNodePool* m_tinyNodePool;	///< Pointer to small node pool.
 	class dtNodePool* m_nodePool;		///< Pointer to node pool.
 	class dtNodeQueue* m_openList;		///< Pointer to open list queue.
-};
+} SWIFT_UNSAFE_REFERENCE;
 
 /// Allocates a query object using the Detour allocator.
 /// @return An allocated query object, or null on failure.

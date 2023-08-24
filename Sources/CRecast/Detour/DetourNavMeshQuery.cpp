@@ -26,6 +26,7 @@
 #include "DetourAlloc.h"
 #include "DetourAssert.h"
 #include <new>
+#import <swift/bridging>
 
 /// @class dtQueryFilter
 ///
@@ -66,6 +67,16 @@ dtQueryFilter::dtQueryFilter() :
 {
 	for (int i = 0; i < DT_MAX_AREAS; ++i)
 		m_areaCost[i] = 1.0f;
+}
+
+dtQueryFilter *
+dtAllocQueryFilter() {
+    return new dtQueryFilter();
+}
+
+void
+dtFreeQueryFilter (dtQueryFilter *value) {
+    delete value;
 }
 
 #ifdef DT_VIRTUAL_QUERYFILTER

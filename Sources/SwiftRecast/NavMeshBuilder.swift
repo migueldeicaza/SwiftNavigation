@@ -14,7 +14,7 @@ import CRecast
 /// that describe the kind of mesh that you want to create.   The configuration object
 /// contains various defaults already set which should work for most situations.
 ///
-public class Navmesh {
+public class NavMeshBuilder {
     /// The possible styles for partitioning the heightfield
     public enum PartitionStyle: Int32 {
         /// - the classic Recast partitioning
@@ -412,7 +412,7 @@ public class Navmesh {
     ///  - config: configuration for the creation of this mesh
     ///  - debug: whether you want to run in debug mode or not, debug will enable logging and timers
     public convenience init (vertices: [SIMD3<Float>], triangles: [Int32], config: Config, debug: Bool = true) throws {
-        try self.init (vertices: Navmesh.flatten (vertices), triangles: triangles, config: config, debug: debug)
+        try self.init (vertices: NavMeshBuilder.flatten (vertices), triangles: triangles, config: config, debug: debug)
     }
     
     // Low-level data return by the bulk mesh generation api.
@@ -568,7 +568,7 @@ public class Navmesh {
     }
 
     @available(macOS 13.3.0, *)
-    public func makeNavigationDetour (agentHeight: Float, agentRadius: Float, agentMaxClimb: Float) throws -> Detour {
+    public func makeNavMesh (agentHeight: Float, agentRadius: Float, agentMaxClimb: Float) throws -> NavMesh {
         var ptr: UnsafeMutableRawPointer?
         var size: Int32 = 0
         let r = bindingGenerateDetour(llData, agentHeight, agentRadius, agentMaxClimb, &ptr, &size)
@@ -588,7 +588,7 @@ public class Navmesh {
         if ptr == nil {
             throw NavmeshError.unknown
         }
-        return try Detour (ptr!, size: size)
+        return try NavMesh (ptr!, size: size)
     }
 
     deinit {
