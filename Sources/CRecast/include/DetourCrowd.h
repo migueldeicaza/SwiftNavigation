@@ -25,6 +25,7 @@
 #include "DetourPathCorridor.h"
 #include "DetourProximityGrid.h"
 #include "DetourPathQueue.h"
+#include <swift/bridging>
 
 /// The maximum number of neighbors that a crowd agent can take into account
 /// for steering decisions.
@@ -352,7 +353,7 @@ private:
 	// Explicitly disabled copy constructor and copy assignment operator.
 	dtCrowd(const dtCrowd&);
 	dtCrowd& operator=(const dtCrowd&);
-};
+} SWIFT_UNSAFE_REFERENCE;
 
 /// Allocates a crowd object using the Detour allocator.
 /// @return A crowd object that is ready for initialization, or null on failure.

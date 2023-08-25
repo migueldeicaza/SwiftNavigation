@@ -29,7 +29,6 @@
 #include "DetourAssert.h"
 #include "DetourAlloc.h"
 
-
 dtCrowd* dtAllocCrowd()
 {
 	void* mem = dtAlloc(sizeof(dtCrowd), DT_ALLOC_PERM);

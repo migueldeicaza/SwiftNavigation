@@ -93,4 +93,9 @@ public class NavMesh {
     public func makeQuery (maxNodes: Int32 = 2048) throws -> NavMeshQuery {
         return try NavMeshQuery(nav: self, maxNodes: maxNodes)
     }
+    
+    /// Creates a new crowd controlling system
+    public func makeCrowd (maxAgents: Int32, agentRadius: Float) throws -> Crowd {
+        try Crowd (maxAgents: maxAgents, agentRadius: agentRadius, nav: self)
+    }
 }
