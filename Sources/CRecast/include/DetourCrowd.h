@@ -170,7 +170,7 @@ struct dtCrowdAgent
 	dtPathQueueRef targetPathqRef;		///< Path finder ref.
 	bool targetReplan;					///< Flag indicating that the current path is being replanned.
 	float targetReplanTime;				/// <Time since the agent's target was replanned.
-};
+} SWIFT_UNSAFE_REFERENCE;
 
 struct dtCrowdAgentAnimation
 {
@@ -263,7 +263,7 @@ public:
 	/// Gets the specified agent from the pool.
 	///	 @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
 	/// @return The requested agent.
-	const dtCrowdAgent* getAgent(const int idx);
+	const dtCrowdAgent* getAgent(int idx);
 
 	/// Gets the specified agent from the pool.
 	///	 @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
@@ -355,6 +355,8 @@ private:
 	dtCrowd& operator=(const dtCrowd&);
 } SWIFT_UNSAFE_REFERENCE;
 
+const dtCrowdAgent *dtCrowdGetAgent (dtCrowd *crowd, int idx);
+
 /// Allocates a crowd object using the Detour allocator.
 /// @return A crowd object that is ready for initialization, or null on failure.
 ///  @ingroup crowd
@@ -364,7 +366,6 @@ dtCrowd* dtAllocCrowd();
 ///  @param[in]		ptr		A crowd object allocated using #dtAllocCrowd
 ///  @ingroup crowd
 void dtFreeCrowd(dtCrowd* ptr);
-
 
 #endif // DETOURCROWD_H
 

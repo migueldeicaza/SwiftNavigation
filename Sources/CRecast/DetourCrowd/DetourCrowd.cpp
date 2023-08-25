@@ -488,7 +488,10 @@ const dtCrowdAgent* dtCrowd::getAgent(const int idx)
 	return &m_agents[idx];
 }
 
-/// 
+const dtCrowdAgent *dtCrowdGetAgent (dtCrowd *crowd, int idx) {
+    return crowd->getAgent(idx);
+}
+///
 /// Agents in the pool may not be in use.  Check #dtCrowdAgent.active before using the returned object.
 dtCrowdAgent* dtCrowd::getEditableAgent(const int idx)
 {

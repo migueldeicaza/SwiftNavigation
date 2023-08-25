@@ -96,21 +96,6 @@ public class Crowd {
         fatalError()
     }
     
-    /// Crowd agent update flags
-    public struct UpdateFlags: OptionSet {
-        public let rawValue: UInt32
-        public init (rawValue: UInt32) {
-            self.rawValue = rawValue
-        }
-        public static let anticipateTurns = UpdateFlags(rawValue: DT_CROWD_ANTICIPATE_TURNS.rawValue)
-        public static let obstacleAvoidance = UpdateFlags (rawValue: DT_CROWD_OBSTACLE_AVOIDANCE.rawValue)
-        public static let separation = UpdateFlags (rawValue: DT_CROWD_SEPARATION.rawValue)
-        // #dtPathCorridor::optimizePathVisibility() to optimize the agent path.
-        public static let optimizeVisibility = UpdateFlags (rawValue: DT_CROWD_OPTIMIZE_VIS.rawValue)
-        // Use dtPathCorridor::optimizePathTopology() to optimize the agent path.
-        public static let optimizeTopology = UpdateFlags (rawValue: DT_CROWD_OPTIMIZE_TOPO.rawValue)
-
-    }
     /// Adds a new agent to the crowd
     /// - Parameters:
     ///   - position: Requested position for the agent.
@@ -132,10 +117,10 @@ public class Crowd {
                           maxSpeed: Float = 3.5,
                           collisionQueryRange: Float = 0.6 * 12,
                           pathOptimizationRange: Float = 0.6 * 30,
-                          updateFlags: UpdateFlags,
+                          updateFlags: UpdateFlags = UpdateFlags(rawValue: 0),
                           obstableAvoidanceType: UInt8 = 3,
                           queryFilterIndex: UInt8 = 0,
-                          separationWeight: Float = 2) -> Agent? {
+                          separationWeight: Float = 2) -> CrowdAgent? {
         var params = dtCrowdAgentParams (
             radius: radius,
             height: height,
@@ -150,7 +135,36 @@ public class Crowd {
             userData: nil)
         var pos: [Float] = [position.x, position.y, position.z]
         let idx = crowd.addAgent(&pos, &params)
-        return Agent (crowd: self, idx: idx)
+        guard idx != -1 else {
+            return nil
+        }
+        return CrowdAgent (crowd: self, idx: idx)
+    }
+    
+    /// Adds a new agent to the crowd
+    /// - Parameters:
+    ///   - position: Requested position for the agent.
+    /// - Returns: An agent on success, or nil if it was not possible to add the agent
+    public func addAgent (_ position: SIMD3<Float>, params: CrowdAgent.Params) -> CrowdAgent? {
+        var params2 = params.todtCrowdAgentParams ()
+        var pos: [Float] = [position.x, position.y, position.z]
+
+        let idx = crowd.addAgent(&pos, &params2)
+        guard idx != -1 else {
+            return nil
+        }
+        return CrowdAgent (crowd: self, idx: idx)
+    }
+    
+    /// Removes an agent from the crowd
+    public func remove (agent: CrowdAgent) {
+        crowd.removeAgent(agent.idx)
+        agent.idx = -1
+    }
+    
+    /// Update the simulation
+    public func update (dt: Float) {
+        crowd.update(dt, nil)
     }
     
     deinit {
@@ -171,6 +185,10 @@ public class Crowd {
         public var adaptiveRings: UInt8
         public var adaptiveDepth: UInt8
     }
+    
+    /// The maximum number of agents that can be managed by the object.
+    public var maxAgentCount: Int {
+        Int (crowd.getAgentCount())
+    }
+    
 }
-
-
