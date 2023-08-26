@@ -7,6 +7,9 @@
 
 import Foundation
 import CRecast
+#if canImport(RealityKit)
+import RealityKit
+#endif
 
 /// Creates a navigational mesh based on a geometry provided by vertices and triangles
 ///
@@ -541,6 +544,44 @@ public class NavMeshBuilder {
         
         llData = ret
     }
+    
+    #if canImport(RealityKit)
+    public convenience init(model: ModelComponent, config: Config, debug: Bool = true) throws {
+        var floatArray: [Float] = []
+        var triangles: [Int32] = []
+        for model in model.mesh.contents.models {
+            for part in model.parts {
+                if let vertices = part.buffers [.positions]?.get (SIMD3<Float>.self) {
+                    floatArray = Array.init (repeating: 0, count: vertices.count*3)
+                    var i = 0
+                    for vertix in vertices {
+                        floatArray [i] = vertix.x
+                        i += 1
+                        floatArray [i] = vertix.y
+                        i += 1
+                        floatArray [i] = vertix.z
+                        i += 1
+                    }
+                }
+                
+                if let triangleBuffer = part.buffers [.triangleIndices]?.get (UInt16.self) {
+                    triangles = Array.init(repeating: 0, count: triangleBuffer.count)
+                    let telem = triangleBuffer.elements
+                    for x in 0..<triangleBuffer.count {
+                        triangles [x] = Int32 (telem [x])
+                    }
+                } else if let triangleBuffer = part.buffers [.triangleIndices]?.get (UInt32.self) {
+                    triangles = Array.init(repeating: 0, count: triangleBuffer.count)
+                    let telem = triangleBuffer.elements
+                    for x in 0..<triangleBuffer.count {
+                        triangles [x] = Int32 (telem [x])
+                    }
+                }
+            }
+        }
+        try self.init(vertices: floatArray, triangles: triangles, config: config, debug: debug)
+    }
+    #endif
     
     /// Returns a representation suitable for navigation, but also to be stored on disk
     /// or transferred

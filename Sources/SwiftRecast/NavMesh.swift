@@ -90,12 +90,12 @@ public class NavMesh {
     /// - Parameters:
     ///  - maxNodes: Maximum number of search nodes. [Limits: 0 < value <= 65535]
     /// - Returns: the nav mesh query, or throws an exception on error.
-    public func makeQuery (maxNodes: Int32 = 2048) throws -> NavMeshQuery {
-        return try NavMeshQuery(nav: self, maxNodes: maxNodes)
+    public func makeQuery (maxNodes: Int = 2048) throws -> NavMeshQuery {
+        return try NavMeshQuery(nav: self, maxNodes: Int32 (maxNodes))
     }
     
     /// Creates a new crowd controlling system
-    public func makeCrowd (maxAgents: Int32, agentRadius: Float) throws -> Crowd {
-        try Crowd (maxAgents: maxAgents, agentRadius: agentRadius, nav: self)
+    public func makeCrowd (maxAgents: Int, agentRadius: Float) throws -> Crowd {
+        try Crowd (maxAgents: Int32 (maxAgents), agentRadius: agentRadius, nav: self)
     }
 }
