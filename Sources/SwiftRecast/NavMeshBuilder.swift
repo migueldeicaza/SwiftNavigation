@@ -626,12 +626,52 @@ public class NavMeshBuilder {
         default:
             throw NavmeshError.unknown
         }
-        if ptr == nil {
+        guard let ptr else {
             throw NavmeshError.unknown
         }
-        return try NavMesh (ptr!, size: size)
+        return try NavMesh (ptr, size: size)
     }
 
+    #if canImport(RealityKit)
+    public func getDetailMeshResource () throws -> MeshResource {
+        guard var mesh = llData.pointee.poly_mesh else {
+            throw NavmeshError.invalidDetailPolyMesh
+        }
+    
+        let vat = extractVertsAndTriangles(llData)
+        var positions: [SIMD3<Float>] = Array (repeating: [0, 0, 0], count: Int (vat.nverts))
+        var normals: [SIMD3<Float>] = Array (repeating: [0, 0, 0], count: Int (vat.nverts))
+        
+        vat.verts.withMemoryRebound(to: SIMD3<Float>.self, capacity: Int (vat.nverts)) { vertPtr in
+            for i in 0..<Int(vat.nverts) {
+                let vec = vertPtr [i]
+                positions [i] = vec
+                normals [i] = normalize(vec)
+            }
+        }
+    
+        var triangles: [UInt32] = Array (repeating: 0, count: Int(vat.ntris))
+        vat.triangles.withMemoryRebound(to: UInt32.self, capacity: Int(vat.ntris)) { tptr in
+            for i in 0..<Int(vat.ntris) {
+                triangles [i] = tptr [i]
+            }
+        }
+
+        var descriptor = MeshDescriptor()
+        descriptor.positions = MeshBuffer(positions)
+        descriptor.normals = MeshBuffer(normals)
+        descriptor.primitives = .triangles(triangles)
+        try export(vertices: positions, triangles: triangles, to: "/tmp/second.obj")
+        do {
+            return try MeshResource.generate(from: [descriptor])
+        } catch (let e) {
+            print ("Error generating mesh, \(e)")
+            throw e
+        }
+    }
+    #endif
+    
+    
     deinit {
         bindingRelease(llData)
     }
@@ -678,6 +718,8 @@ public class NavMeshBuilder {
         case allocDetailPolyMesh
         /// Error buildling the detailed poly mesh
         case buildDetailPolyMesh
+        /// Invalid state: we do not have a valid DetailPolyMesh, this should never happen
+        case invalidDetailPolyMesh
     }
 
 }

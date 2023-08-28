@@ -18,6 +18,7 @@
  
 #ifndef RECAST_H
 #define RECAST_H
+#include <swift/bridging>
 
 /// The value of PI used by Recast.
 static const float RC_PI = 3.14159265f;
@@ -476,7 +477,7 @@ private:
 	// Explicitly-disabled copy constructor and copy assignment operator.
 	rcPolyMesh(const rcPolyMesh&);
 	rcPolyMesh& operator=(const rcPolyMesh&);
-};
+} SWIFT_UNSAFE_REFERENCE;
 
 /// Contains triangle meshes that represent detailed height data associated 
 /// with the polygons in its associated polygon mesh object.
@@ -496,7 +497,7 @@ private:
 	// Explicitly-disabled copy constructor and copy assignment operator.
 	rcPolyMeshDetail(const rcPolyMeshDetail&);
 	rcPolyMeshDetail& operator=(const rcPolyMeshDetail&);
-};
+} SWIFT_UNSAFE_REFERENCE;
 
 /// @name Allocation Functions
 /// Functions used to allocate and de-allocate Recast objects.
