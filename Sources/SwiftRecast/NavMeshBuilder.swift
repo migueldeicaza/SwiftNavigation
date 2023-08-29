@@ -633,6 +633,54 @@ public class NavMeshBuilder {
     }
 
     #if canImport(RealityKit)
+    public func getMeshResourceEntities () throws -> [MeshResource] {
+        guard var mesh = llData.pointee.poly_mesh else {
+            throw NavmeshError.invalidDetailPolyMesh
+        }
+    
+        let vat = extractVertsAndTriangles(llData)
+        var positions: [SIMD3<Float>] = Array (repeating: [0, 0, 0], count: Int (vat.nverts))
+        var normals: [SIMD3<Float>] = Array (repeating: [0, 0, 0], count: Int (vat.nverts))
+        
+        vat.verts.withMemoryRebound(to: SIMD3<Float>.self, capacity: Int (vat.nverts)) { vertPtr in
+            for i in 0..<Int(vat.nverts) {
+                let vec = vertPtr [i]
+                positions [i] = vec
+                normals [i] = normalize(vec)
+            }
+        }
+    
+        var polys: [[UInt32]] = []
+        
+        vat.triangles.withMemoryRebound(to: BindingTriangle.self, capacity: Int(vat.npolys)) { bt in
+            for tidx in 0..<Int(vat.npolys) {
+                let tcount = Int (bt [tidx].count)
+                var triangle: [UInt32] = Array.init (repeating: 0, count: tcount)
+                
+                bt [Int(tidx)].data.withMemoryRebound(to: UInt32.self, capacity: tcount) { data in
+                    for x in 0..<tcount {
+                        let v = data [x]
+                        triangle [x] = v
+                    }
+                }
+                polys.append (triangle)
+            }
+        }
+
+        var meshes: [MeshResource] = []
+        
+        for triangles in polys {
+            var descriptor = MeshDescriptor()
+            descriptor.positions = MeshBuffer(positions)
+            descriptor.normals = MeshBuffer(normals)
+            descriptor.primitives = .triangles(triangles)
+            meshes.append (try MeshResource.generate(from: [descriptor]))
+            
+            
+        }
+        return meshes
+    }
+    
     public func getDetailMeshResource () throws -> MeshResource {
         guard var mesh = llData.pointee.poly_mesh else {
             throw NavmeshError.invalidDetailPolyMesh
@@ -650,24 +698,37 @@ public class NavMeshBuilder {
             }
         }
     
-        var triangles: [UInt32] = Array (repeating: 0, count: Int(vat.ntris))
-        vat.triangles.withMemoryRebound(to: UInt32.self, capacity: Int(vat.ntris)) { tptr in
-            for i in 0..<Int(vat.ntris) {
-                triangles [i] = tptr [i]
+        var polys: [[UInt32]] = []
+        
+        vat.triangles.withMemoryRebound(to: BindingTriangle.self, capacity: Int(vat.npolys)) { bt in
+            for tidx in 0..<Int(vat.npolys) {
+                let tcount = Int (bt [tidx].count)
+                var triangle: [UInt32] = Array.init (repeating: 0, count: tcount)
+                
+                bt [Int(tidx)].data.withMemoryRebound(to: UInt32.self, capacity: tcount) { data in
+                    for x in 0..<tcount {
+                        let v = data [x]
+                        triangle [x] = v
+                    }
+                }
+                polys.append (triangle)
             }
         }
 
-        var descriptor = MeshDescriptor()
-        descriptor.positions = MeshBuffer(positions)
-        descriptor.normals = MeshBuffer(normals)
-        descriptor.primitives = .triangles(triangles)
-        try export(vertices: positions, triangles: triangles, to: "/tmp/second.obj")
-        do {
-            return try MeshResource.generate(from: [descriptor])
-        } catch (let e) {
-            print ("Error generating mesh, \(e)")
-            throw e
+        var descriptors: [MeshDescriptor] = []
+        for triangles in polys {
+            
+            var descriptor = MeshDescriptor()
+            descriptor.positions = MeshBuffer(positions)
+            descriptor.normals = MeshBuffer(normals)
+            descriptor.primitives = .triangles(triangles)
+            
+            descriptors.append (descriptor)
         }
+        
+        print ("TODO: Release the binding buffers (in the temporary we used to return the data)")
+
+        return try MeshResource.generate(from: descriptors)
     }
     #endif
     
