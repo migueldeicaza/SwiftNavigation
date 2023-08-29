@@ -9,11 +9,10 @@ avoid obstacles or create agents that can seek targets in this mesh.
 
 <!--@START_MENU_TOKEN@-->Menu<!--@END_MENU_TOKEN@-->
 
-## Topics
+## Overview
 
-### Getting Started
 
-Generally you start by initializing a ``NavMeshBuilder`` with the data
+You start by initializing a ``NavMeshBuilder`` with the data
 from your model.  This can be either some raw data in the form of
 vertices and triangles, or it can be a `ModelComponent` that you
 loaded from RealityKit based on a number of configuration parameters
@@ -29,7 +28,10 @@ mesh, or to trace a path between two points using a number of
 parameters or create agents that will move in your mesh from one point
 to another while avoding an overlap with other agents.
 
-### Licensing
+## Topics
+
+
+## Licensing
 
 Contact `hello@xibbon.com` for licensing information.
 

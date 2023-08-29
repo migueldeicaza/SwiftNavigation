@@ -15,7 +15,7 @@ import CRecast
 /// avoidance between members of the crowd. I.e. It can keep your agents from
 /// running into each other.
 ///
-/// The ``dtNavMeshQuery`` and ``dtPathCorridor`` classes provide perfectly good, easy
+/// The ``NavMeshQuery`` and ``PathCorridor`` classes provide perfectly good, easy
 /// to use path planning features. But in the end they only give you points that
 /// your navigation client should be moving toward. When it comes to deciding things
 /// like agent velocity and steering to avoid other agents, that is up to you to
