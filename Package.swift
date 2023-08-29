@@ -13,14 +13,17 @@ let package = Package(
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "SwiftRecast",
-            targets: ["SwiftRecast"]),
+            name: "SwiftNavigation",
+            targets: ["SwiftNavigation"]),
+    ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.0.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "SwiftRecast",
+            name: "SwiftNavigation",
             dependencies: ["CRecast"],
             swiftSettings: [.interoperabilityMode(.Cxx)]
         ),
@@ -28,7 +31,7 @@ let package = Package(
             name: "CRecast"),
         .testTarget(
             name: "RecastTests",
-            dependencies: ["SwiftRecast"],
+            dependencies: ["SwiftNavigation"],
             swiftSettings: [.interoperabilityMode(.Cxx)]),
     ]
 )
