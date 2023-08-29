@@ -1,5 +1,5 @@
 import XCTest
-@testable import SwiftDetour
+@testable import SwiftNavigation
 
 final class SwiftNavigationTests: XCTestCase {
     func testExample() throws {

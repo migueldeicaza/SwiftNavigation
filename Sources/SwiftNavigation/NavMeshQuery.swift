@@ -5,21 +5,27 @@ import Foundation
 import CRecast
 
 /// Represents a point inside a polygon reference, bound to the mesh
-public struct PointInPoly {
+///
+/// Various routines in SwiftNavigation are optimized to use both a polygon reference
+/// and a location, and this structure can be used to pass both values around.
+public struct PointInPoly: CustomDebugStringConvertible {
     /// Polygon reference
     public let polyRef: dtPolyRef
-    /// Point in the polygon stored in an array (x, y, z)
+    /// Point in the polygon stored in an array of three floats (x, y, z)
     public let point: [Float]
     /// Point in the polygon as a SIMD3 value
     public var point3: SIMD3<Float> {
         return [point [0], point [1], point [2]]
     }
+    
+    /// Produces an informational string with the polygon reference and the location in space
+    public var debugDescription: String {
+        return "[\(polyRef):\(point3)]"
+    }
 }
 
-@available(macOS 13.3.0, *)
-
 /// NavMeshQuery is used to perform path finding queries in the ``NavMesh`` and is created
-/// by calling the ``NavMesh.makeQuery(maxNodes:)`` method.   That sets up some
+/// by calling the ``NavMesh/makeQuery(maxNodes:)`` method.   That sets up some
 /// costly internal data structures.
 ///
 /// Then you can call methods like ``findRandomPoint(filter:randomFunction:)``, ``findPathCorridor(filter:start:end:maxPaths:)`` or ``findStraightPath(filter:startPos:endPos:pathCorridor:maxPaths:options:)``.
@@ -162,7 +168,7 @@ public class NavMeshQuery {
     ///  - filter: an optional filter to determine the elegibility of a polygon
     ///  - startPos: the starting position as a floating point array containing (x, y, z) values
     ///  - endPos: the ending position as a floating point array containing (x, y, z) values
-    ///  - pathCorridor: an array of dtPolyRefs that obtained from ``findPathCorridor`` that contains the polygons to traverse
+    ///  - pathCorridor: an array of dtPolyRefs that obtained from ``findPathCorridor(filter:start:end:maxPaths:)`` that contains the polygons to traverse
     ///  - maxPaths: the maximum number of points to return
     ///  - options: options controlling which vertices to add.
     public func findStraightPath (filter custom: NavQueryFilter? = nil, startPos: SIMD3<Float>, endPos: SIMD3<Float>, pathCorridor: [dtPolyRef], maxPaths: Int = 512, options: StraightPathOptions = []) -> Result<FoundPath, NavMesh.NavMeshError> {
@@ -187,9 +193,44 @@ public class NavMeshQuery {
                 resultFlags.removeSubrange(Int(resultCount)..<maxPaths)
                 resultRefs.removeSubrange(Int(resultCount)..<maxPaths)
             }
-            return .success(FoundPath(count: Int(resultCount), path: resultStraightPath, flags: resultFlags, polyRefs: resultRefs))
+            return .success(FoundPath(count: Int(resultCount), rawPathPoints: resultStraightPath, flags: resultFlags, polyRefs: resultRefs))
         }
         return .failure(NavMesh.statusToError(res))
+    }
+    
+    /// Finds the straight path from the start to the end position, computing the path corridor implicitly.
+    ///
+    /// This method is a convenience that calls ``findPathCorridor(filter:start:end:maxPaths:)`` followed
+    /// by calling ``findStraightPath(filter:startPos:endPos:pathCorridor:maxPaths:options:)``.
+    /// 
+    /// This method peforms what is often called 'string pulling'.
+    ///
+    /// The start position is clamped to the first polygon in the path, and the
+    /// end position is clamped to the last. So the start and end positions should
+    /// normally be within or very near the first and last polygons respectively.
+    ///
+    /// The returned polygon references represent the reference id of the polygon
+    /// that is entered at the associated path position. The reference id associated
+    /// with the end point will always be zero.  This allows, for example, matching
+    /// off-mesh link points to their representative polygons.
+    ///
+    /// If the provided result buffers are too small for the entire result set,
+    /// they will be filled as far as possible from the start toward the end
+    /// position.
+    ///
+    /// - Parameters:
+    ///  - filter: an optional filter to determine the elegibility of a polygon
+    ///  - startPos: the starting position as a PointInPoly location.
+    ///  - endPos: the ending position as a PointInPoly location.
+    ///  - maxPaths: the maximum number of points to return
+    ///  - options: options controlling which vertices to add.
+    public func findStraightPath (filter custom: NavQueryFilter? = nil, startPos: PointInPoly, endPos: PointInPoly, maxPaths: Int = 512, options: StraightPathOptions = []) -> Result<FoundPath, NavMesh.NavMeshError> {
+        switch findPathCorridor(filter: custom, start: startPos, end: endPos, maxPaths: maxPaths) {
+        case .failure(let err):
+            return .failure(err)
+        case .success(let corridor):
+            return findStraightPath(filter: filter, startPos: startPos.point3, endPos: endPos.point3, pathCorridor: corridor, maxPaths: maxPaths, options: options)
+        }
     }
     
     /// Contains the resulting value for calling ``findStraightPath(filter:startPos:endPos:pathCorridor:maxPaths:options:)``
@@ -197,12 +238,20 @@ public class NavMeshQuery {
     public struct FoundPath {
         /// The number of items in the found value.
         public var count: Int
-        /// Array of floating point values, containing 3 floating point values per item (x, y and z)
-        public let path: [Float]
-        /// Flag for each element in the path, the values are 
+        /// Array of floating point values, containing 3 floating point values per item (x, y and z), use the indexer to retrieve the value as SIMD3<Float>
+        public let rawPathPoints: [Float]
+        /// Flag for each element in the path, the values are
         public let flags: [StraightPathFlags]
         /// Polygon references
         public let polyRefs: [dtPolyRef]
+        
+        public subscript (idx: Int) -> SIMD3<Float> {
+            if idx > count {
+                fatalError("Out of range \(idx) maxValue is \(count)")
+            }
+            let base = idx * 3
+            return SIMD3<Float> (rawPathPoints [base], rawPathPoints[base+1], rawPathPoints [base+2])
+        }
     }
     
     /// Finds the polygon nearest to the specified center point.

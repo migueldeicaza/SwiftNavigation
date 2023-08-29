@@ -8,14 +8,15 @@
 import Foundation
 import CRecast
 
-@available(macOS 13.3.0, *)
-/// CrowdAgents are created by calling one of the ``Crowd``'s `addAgent`` methods.
+/// An agent managed by ``Crowd``
+///
+/// Agents are created by calling one of ``Crowd``'s `addAgent` methods.
 ///
 /// After the agent has been created, the configuration of the agent can be updated individually
 /// with one of the various `set` methods in this class or in bulk by accessing the ``param`` property.
 ///
 /// The convenience ``set(navigationQuality:)`` and ``set(navigationPushiness:)`` can help
-/// you use various presets that affect the
+/// you use various presets that affect the navigation quality and pushiness in one go.
 ///
 /// You request the agent to move to a specific location using ``requestMove(target:)`` or ``requestMove(velocity:)``
 /// and you can cancel this request by calling ``resetMove()``.
@@ -40,7 +41,6 @@ public class CrowdAgent {
             return CrowdAgent.Params(radius: p.radius, height: p.height, maxAcceleration: p.maxAcceleration, maxSpeed: p.maxSpeed, collisionQueryRange: p.collisionQueryRange, pathOptimizationRange: p.pathOptimizationRange, separationWeight: p.separationWeight, updateFlags: UpdateFlags (rawValue: p.updateFlags), obstacleAvoidanceType: p.obstacleAvoidanceType, queryFilterType: p.queryFilterType, userData: p.userData)
         }
         set {
-            let r = dtCrowdGetAgent(crowd.crowd, idx)!
             var p = newValue.todtCrowdAgentParams()
             crowd.crowd.updateAgentParameters(idx, &p)
         }
@@ -174,7 +174,7 @@ public class CrowdAgent {
     /// - Parameter velocitt: the desired velocity for the agent
     /// - Returns: true for a valid request, false for an invalid one
     public func requestMove (velocity: SIMD3<Float>) -> Bool {
-        var copy: [Float] = [velocity.x, velocity.y, velocity.z]
+        let copy: [Float] = [velocity.x, velocity.y, velocity.z]
         return crowd.crowd.requestMoveVelocity(idx, copy)
     }
     
@@ -200,18 +200,18 @@ public class CrowdAgent {
     /// These are presets that affect the computational cost of the navigation and affect the agent ``UpdateFlags``
     public enum NavigationQuality {
         /// This is a preset that sets the ``params`` updateFlags to
-        /// ``CrowdAgent.UpdateFlags.optimizeVisibility``
-        /// and ``CrowdAgent.UpdateFlags.anticipateTurns``
+        /// ``CrowdAgent/UpdateFlags/optimizeVisibility``
+        /// and ``CrowdAgent/UpdateFlags/anticipateTurns``
         case low
         /// This is a preset that sets the ``params`` updateFlags
-        /// to ``CrowdAgent.UpdateFlags.optimizeVisibility``,  ``CrowdAgent.UpdateFlags.anticipateTurns``,
-        /// ``CrowdAgent.UpdateFlags.separation`` and ``CrowdAgent.UpdateFlags.optimizeTopology``
+        /// to ``CrowdAgent/UpdateFlags/optimizeVisibility``,  ``CrowdAgent/UpdateFlags/anticipateTurns``,
+        /// ``CrowdAgent/UpdateFlags/separation`` and ``CrowdAgent/UpdateFlags/optimizeTopology``
 
         case medium
         
-        /// This is a preset that sets the ``params`` updateFlags to ``CrowdAgent.UpdateFlags.optimizeVisibility``,
-        /// ``CrowdAgent.UpdateFlags.anticipateTurns``, ``CrowdAgent.UpdateFlags.separation``,
-        /// ``CrowdAgent.UpdateFlags.optimizeTopology`` and ``CrowdAgent.UpdateFlags.obstacleAvoidance``
+        /// This is a preset that sets the ``params`` updateFlags to ``CrowdAgent/UpdateFlags/optimizeVisibility``,
+        /// ``CrowdAgent/UpdateFlags/anticipateTurns``, ``CrowdAgent/UpdateFlags/separation``,
+        /// ``CrowdAgent/UpdateFlags/optimizeTopology`` and ``CrowdAgent/UpdateFlags/obstacleAvoidance``
         case high
     }
 

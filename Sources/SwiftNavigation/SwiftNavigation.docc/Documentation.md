@@ -1,12 +1,17 @@
 # ``SwiftNavigation``
 
-SwiftNavigation is a Swift binding to
-[RecastNavigation](http://recastnav.com) which can turn your meshes or
-models into navigation meshes.  You can use these to place objects in
-your 3D space, avoid obstacles or create objects that can seek targets
-within this navigation mesh.
+SwiftNavigation provides mesh navigation construction and use for Swift and RealityKit applications. 
+
+SwiftNavigation is a Swift binding to the popular RecastNavigation.   It can turn
+your meshes or models into navigation meshes quickly.  You can use these to
+find the paths between two points in your mesh, find nearby places in your mesh,
+avoid obstacles or create agents that can seek targets in this mesh.
 
 <!--@START_MENU_TOKEN@-->Menu<!--@END_MENU_TOKEN@-->
+
+## Topics
+
+### Getting Started
 
 Generally you start by initializing a ``NavMeshBuilder`` with the data
 from your model.  This can be either some raw data in the form of
@@ -24,13 +29,8 @@ mesh, or to trace a path between two points using a number of
 parameters or create agents that will move in your mesh from one point
 to another while avoding an overlap with other agents.
 
-# Licensing
+### Licensing
 
 Contact `hello@xibbon.com` for licensing information.
-
-
-
-
-
 
 

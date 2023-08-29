@@ -11,18 +11,21 @@ import CRecast
 import RealityKit
 #endif
 
-/// Creates a navigational mesh based on a geometry provided by vertices and triangles
-/// 
+/// Creates a navigational mesh based on your geometry.
+///
 /// The constructor takes both your data and a configuration object with various settings
 /// that describe the kind of mesh that you want to create.   The configuration object
 /// contains various defaults already set which should work for most situations.
-/// 
+///
+/// It can be constructed with either vertices and triangle definitions, or from a RealityKit
+/// ModelComponent.
+///
 /// Once the ``NavMeshBuilder`` is constructed, you can:
 /// 
 /// - Serialize the computed mesh for future use by calling ``makeNavigationBlob(agentHeight:agentRadius:agentMaxClimb:)``
-/// which returns a ``Data`` object suitable for saving or transferring.
+/// which returns a `Data` object suitable for saving or transferring.
 /// - Create a ``NavMesh`` that you can use to place object, query for paths and to use with the Crowd API.
-/// - On platforms with RealityKit, you can get a``MeshResource`` that represents the navigation mesh using
+/// - On platforms with RealityKit, you can get a`MeshResource` that represents the navigation mesh using
 /// ``getMeshResource()``.
 public class NavMeshBuilder {
     /// The possible styles for partitioning the heightfield
@@ -52,7 +55,8 @@ public class NavMeshBuilder {
         case layer
     }
     
-    /// Specifies a configuration to use when performing Recast builds.
+    /// Specifies the configuration parameteres used when creating the navigation mesh.
+    ///
     /// The is a convenience structure that represents an aggregation of parameters
     /// used at different stages in the Recast build process. Some
     /// values are derived during the build process. Not all parameters
@@ -146,7 +150,7 @@ public class NavMeshBuilder {
         /// The maximum bounds of the field's AABB. [(x, y, z)] [Units: wu]
         public var bmax: SIMD3<Float>?
         
-        /// The kind of partitioning that you want to use for the heightfield, defaults to ``.watershed``
+        /// The kind of partitioning that you want to use for the heightfield, defaults to ``NavMeshBuilder/PartitionStyle/watershed``
         public var partitionStyle: PartitionStyle
         
         /// The maximum slope that is considered walkable. [Limits: 0 <= value < 90] [Units: Degrees]
@@ -175,9 +179,9 @@ public class NavMeshBuilder {
         /// Maximum ledge height that is considered to still be traversable. [Limit: >=0] [Units: vx]
         ///
         /// The `walkableClimb` value defines the maximum height of ledges and steps that
-        /// the agent can walk up. Given a designer-defined ``maxClimb`` distance in world
-        /// units, the value of #walkableClimb should be calculated as `ceil(maxClimb / ch)`.
-        /// Note that this is using #ch not #cs because it's a height-based value.
+        /// the agent can walk up. Given a designer-defined `maxClimb` distance in world
+        /// units, the value of ``walkableClimb`` should be calculated as `ceil(maxClimb / ch)`.
+        /// Note that this is using ``cellHeight`` not ``cellSize`` because it's a height-based value.
         ///
         /// Allows the mesh to flow over low lying obstructions such as curbs and
         /// up/down stairways. The value is usually set to how far up/down an agent can step.
@@ -578,9 +582,9 @@ public class NavMeshBuilder {
     
     #if canImport(RealityKit)
     ///
-    /// Creates a ``NavMeshBuilder`` from a RealityKit ``ModelComponent``
+    /// Creates a ``NavMeshBuilder`` from a RealityKit `ModelComponent`
     ///
-    /// This constructor extracts the vertices and triangle information from a RealityKit ``ModelComponent``.
+    /// This constructor extracts the vertices and triangle information from a RealityKit `ModelComponent`.
     public convenience init(model: ModelComponent, config: Config, debug: Bool = false) throws {
         var floatArray: [Float] = []
         var triangles: [Int32] = []
@@ -648,7 +652,6 @@ public class NavMeshBuilder {
         return Data (bytesNoCopy: ptr!, count: Int(size), deallocator: .free)
     }
 
-    @available(macOS 13.3.0, *)
     /// Creates a ``NavMesh`` assuming the specified agent dimensions and parameters
     /// - Parameters:
     ///   - agentHeight: The size for the agent that will navigate this mesh
@@ -682,10 +685,6 @@ public class NavMeshBuilder {
     /// Returns the computed polygon mesh that is suitable for navigation as a MeshResource, useful
     /// for debugging.
     public func getMeshResource () throws -> MeshResource {
-        guard var mesh = llData.pointee.poly_mesh else {
-            throw NavmeshError.allocPolyMesh
-        }
-    
         guard let pvat = bindingExtractVertsAndTriangles(llData) else {
             throw NavmeshError.allocPolyMesh
         }
@@ -743,13 +742,13 @@ public class NavMeshBuilder {
         case rasterize
         /// Error building the compact height field
         case buildCompactHeightfield
-        /// Error building the layer regions (when using ``PartitionType.layer``
+        /// Error building the layer regions (when using ``NavMeshBuilder/PartitionStyle/layer``
         case buildLayerRegions
-        /// Error building the monotone regions (when using ``PartitionLayer.monotone``
+        /// Error building the monotone regions (when using ``NavMeshBuilder/PartitionStyle/monotone``
         case buildRegionsMonotone
-        /// Error building the distance field (when using ``PartitionLayer.watershed``)
+        /// Error building the distance field (when using ``NavMeshBuilder/PartitionStyle/watershed``)
         case buildDistanceField
-        /// Error building the regions (when using ``PartitionLayer.watershed``)
+        /// Error building the regions (when using ``NavMeshBuilder/PartitionStyle/watershed``)
         case buildRegions
         /// Not enough memory to allocate the contour
         case allocCountour

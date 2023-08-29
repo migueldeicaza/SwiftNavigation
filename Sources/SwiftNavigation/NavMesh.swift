@@ -1,12 +1,20 @@
 import Foundation
 import CRecast
 
-@available(macOS 13.3.0, *)
-
-/// Mesh that can be navigated.
+/// Mesh that can be navigated and queried.
 ///
-/// The main use is to create ``NavMeshQuery`` objects to query the navigation mesh using ``makeQuery(maxNodes:)``
-/// and to create a ``Crowd`` controller for giving ``CrowdAgent`` goals in your mesh, this is done by calling the
+/// The NavMesh contains information of where can entities live and move in the space and can be used to
+/// perform path finding operations (how to get from one point to another in the mesh given various constraints like
+/// the dimension of your agents, the slope they can climb up, portals connecting the mesh), finding points in the mesh given
+/// a position, or to run agents that are part of a crowd.
+/// 
+/// You either obtain a ``NavMesh`` from calling ``NavMeshBuilder/makeNavMesh(agentHeight:agentRadius:agentMaxClimb:)``
+/// or you can instantiate it from a previously serialized navigation mesh created with ``NavMeshBuilder/makeNavigationBlob(agentHeight:agentRadius:agentMaxClimb:)``.
+///
+/// Create ``NavMeshQuery`` objects to query the navigation mesh using ``makeQuery(maxNodes:)``, which
+/// creates a query with an upper limit on the number of nodes returned.
+///
+/// Create a ``Crowd`` controller that manages ``CrowdAgent`` goals in your mesh using the 
 /// ``makeCrowd(maxAgents:agentRadius:)`` method.
 ///
 public class NavMesh {
@@ -58,14 +66,14 @@ public class NavMesh {
     
     var navMesh: dtNavMesh
     
-    /// Creates a NavMesh from a previously generated ``Data`` that was returned by
-    /// ``NavMeshBuilder.makeNavigationBlob(agentHeight:agentRadius:agentMaxClimb:)`` method.
-    /// 
+    /// Creates a NavMesh from a previously generated `Data` that was returned by
+    /// ``NavMeshBuilder/makeNavigationBlob(agentHeight:agentRadius:agentMaxClimb:)`` method.
+    ///
     public init (_ blob: Data) throws {
         guard let handle = dtAllocNavMesh() else {
             throw NavMeshError.alloc
         }
-        guard var copy = malloc (blob.count) else {
+        guard let copy = malloc (blob.count) else {
             dtFreeNavMesh(handle)
             throw NavMeshError.alloc
         }

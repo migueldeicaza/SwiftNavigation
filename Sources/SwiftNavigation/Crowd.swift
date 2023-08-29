@@ -8,9 +8,7 @@
 import Foundation
 import CRecast
 
-@available(macOS 13.3.0, *)
-
-/// Crows implement local steering and dynamic avoidance features.
+/// Crowds implement local steering and dynamic avoidance features.
 ///
 /// The crowd is the big beast of the navigation features. It not only handles a
 /// lot of the path management for you, but also local steering and dynamic
@@ -77,7 +75,7 @@ public class Crowd {
     /// Sets the shared avoidance configuration for the specified index.
     ///
     /// The index that you set can be configured in the ``CrowdAgent`` by calling the
-    /// ``set (obstacleAvoidanceType: Int)`` method on it.
+    /// ``CrowdAgent/set(obstacleAvoidanceType:)`` method on it.
     ///
     /// - Parameters:
     ///  - idx: the index to set (between 0 and 8, unless compiled with a larger value)
