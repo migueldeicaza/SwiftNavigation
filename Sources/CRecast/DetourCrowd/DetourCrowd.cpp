@@ -473,6 +473,11 @@ const dtObstacleAvoidanceParams* dtCrowd::getObstacleAvoidanceParams(const int i
 	return 0;
 }
 
+const dtObstacleAvoidanceParams*
+dtCrowdGetObstacleAvoidanceParams(const dtCrowd *crowd, int idx) {
+    return crowd->getObstacleAvoidanceParams(idx);
+}
+
 int dtCrowd::getAgentCount() const
 {
 	return m_maxAgents;

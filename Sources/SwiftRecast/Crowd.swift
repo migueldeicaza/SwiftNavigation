@@ -58,6 +58,8 @@ public class Crowd {
         case alloc
         /// Initialization error in the crowd runtime
         case initialization
+        /// Invalid obstacle reference
+        case invalidObstacleId
     }
     
     var crowd: dtCrowd
@@ -73,10 +75,14 @@ public class Crowd {
     }
     
     /// Sets the shared avoidance configuration for the specified index.
+    ///
+    /// The index that you set can be configured in the ``CrowdAgent`` by calling the
+    /// ``set (obstacleAvoidanceType: Int)`` method on it.
+    ///
     /// - Parameters:
     ///  - idx: the index to set (between 0 and 8, unless compiled with a larger value)
     ///  - config: the configuration parametrs
-    public func setObstableAvoidance (idx: Int32, config: ObstacleAvoidanceConfig) {
+    public func setObstableAvoidance (idx: Int, config: ObstacleAvoidanceConfig) {
         var p = dtObstacleAvoidanceParams(velBias: config.velocitySelectionBias,
                                           weightDesVel: config.desiredVelocityWeight,
                                           weightCurVel: config.currentVelocityWeight,
@@ -88,12 +94,15 @@ public class Crowd {
                                           adaptiveRings: config.adaptiveRings,
                                           adaptiveDepth: config.adaptiveDepth)
         
-        crowd.setObstacleAvoidanceParams(idx, &p)
+        crowd.setObstacleAvoidanceParams(Int32(idx), &p)
     }
     
-    public func getObstacleAvoidance (idx: Int32) -> ObstacleAvoidanceConfig {
-        // TODO binding
-        fatalError()
+    /// Returns the obstacle avoidance configuration for a specific slot
+    public func getObstacleAvoidance (idx: Int) throws -> ObstacleAvoidanceConfig {
+        guard let r = dtCrowdGetObstacleAvoidanceParams(crowd, Int32(idx))?.pointee else {
+            throw CrowdError.invalidObstacleId
+        }
+        return ObstacleAvoidanceConfig(velocitySelectionBias: r.velBias, desiredVelocityWeight: r.weightDesVel, currentVelocityWeight: r.weightCurVel, preferredSideWeight: r.weightSide, collisionTimeWeight: r.weightToi, timeHorizon: r.horizTime, samplingGridSize: r.gridSize, adaptiveDivs: r.adaptiveDivs, adaptiveRings: r.adaptiveRings, adaptiveDepth: r.adaptiveDepth)
     }
     
     /// Adds a new agent to the crowd
@@ -141,7 +150,7 @@ public class Crowd {
         return CrowdAgent (crowd: self, idx: idx)
     }
     
-    /// Adds a new agent to the crowd
+    /// Adds a new agent to the crowd 
     /// - Parameters:
     ///   - position: Requested position for the agent.
     /// - Returns: An agent on success, or nil if it was not possible to add the agent
@@ -162,9 +171,10 @@ public class Crowd {
         agent.idx = -1
     }
     
-    /// Update the simulation
-    public func update (dt: Float) {
-        crowd.update(dt, nil)
+    /// Update the simulation.
+    /// - Parameter dt: the time in seconds, to update the simulation
+    public func update (time: Float) {
+        crowd.update(time, nil)
     }
     
     deinit {
@@ -190,5 +200,4 @@ public class Crowd {
     public var maxAgentCount: Int {
         Int (crowd.getAgentCount())
     }
-    
 }

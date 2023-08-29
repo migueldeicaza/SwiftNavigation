@@ -9,6 +9,19 @@ import Foundation
 import CRecast
 
 @available(macOS 13.3.0, *)
+/// CrowdAgents are created by calling one of the ``Crowd``'s `addAgent`` methods.
+///
+/// After the agent has been created, the configuration of the agent can be updated individually
+/// with one of the various `set` methods in this class or in bulk by accessing the ``param`` property.
+///
+/// The convenience ``set(navigationQuality:)`` and ``set(navigationPushiness:)`` can help
+/// you use various presets that affect the
+///
+/// You request the agent to move to a specific location using ``requestMove(target:)`` or ``requestMove(velocity:)``
+/// and you can cancel this request by calling ``resetMove()``.
+///
+/// After a time update, the agent's ``position`` and ``velocity`` are updated to reflect the
+/// state of the agent.
 public class CrowdAgent {
     var crowd: Crowd
     var idx: Int32
@@ -89,12 +102,12 @@ public class CrowdAgent {
     }
 
     /// Sets the query filter type, a convenience over setting all the parameters
-    public func set (obstacleAvoidanceType: UInt8) {
-        guard obstacleAvoidanceType < DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS else { return }
+    public func set (obstacleAvoidanceType: Int) {
+        guard obstacleAvoidanceType < DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS || obstacleAvoidanceType >= 0 else { return }
         let c = crowd.crowd
         let r = dtCrowdGetAgent(c, idx)!
         var copy = r.params
-        copy.obstacleAvoidanceType = obstacleAvoidanceType
+        copy.obstacleAvoidanceType = UInt8 (obstacleAvoidanceType)
         c.updateAgentParameters(idx, &copy)
     }
 
@@ -125,8 +138,8 @@ public class CrowdAgent {
         c.updateAgentParameters(idx, &copy)
     }
 
-    /// Sets the navigation quality to one of the presets, these control
-    /// the path finding, steering and velocity planning flags from ``UpdateFlags``
+    /// Sets the navigation pushiness to one of the presets.
+    /// The higher the setting, the stronger the agent pushes its colliding neighbours around.
     public func set (navigationPushiness: NavigationPushiness) {
         let c = crowd.crowd
         let r = dtCrowdGetAgent(c, idx)!
@@ -203,7 +216,7 @@ public class CrowdAgent {
     }
 
     /// Convenience enumerations for controlling the `separationWeight` and `collisionQueryRange`
-    ///  parameters of the agent, and they control how strongly an agent will push colliding neighbours around
+    /// parameters of the agent, and they control how strongly an agent will push colliding neighbours around
     public enum NavigationPushiness {
         /// separation weight of 4.0, collisionQueryRange is radius x 16
         case low
@@ -291,7 +304,5 @@ public class CrowdAgent {
         public static let optimizeTopology = UpdateFlags (value: DT_CROWD_OPTIMIZE_TOPO)
 
     }
-
-
 }
 

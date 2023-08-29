@@ -366,6 +366,7 @@ dtCrowd* dtAllocCrowd();
 ///  @param[in]		ptr		A crowd object allocated using #dtAllocCrowd
 ///  @ingroup crowd
 void dtFreeCrowd(dtCrowd* ptr);
+const dtObstacleAvoidanceParams* dtCrowdGetObstacleAvoidanceParams(const dtCrowd *crowd, int idx);
 
 #endif // DETOURCROWD_H
 

@@ -3,7 +3,12 @@ import CRecast
 
 @available(macOS 13.3.0, *)
 
-/// Mesh that can be navigated
+/// Mesh that can be navigated.
+///
+/// The main use is to create ``NavMeshQuery`` objects to query the navigation mesh using ``makeQuery(maxNodes:)``
+/// and to create a ``Crowd`` controller for giving ``CrowdAgent`` goals in your mesh, this is done by calling the
+/// ``makeCrowd(maxAgents:agentRadius:)`` method.
+///
 public class NavMesh {
     /// Errors that are surfaced by the Detour API.
     public enum NavMeshError: Error {
@@ -53,7 +58,9 @@ public class NavMesh {
     
     var navMesh: dtNavMesh
     
-    /// Creates a Detour from a binary blob
+    /// Creates a NavMesh from a previously generated ``Data`` that was returned by
+    /// ``NavMeshBuilder.makeNavigationBlob(agentHeight:agentRadius:agentMaxClimb:)`` method.
+    /// 
     public init (_ blob: Data) throws {
         guard let handle = dtAllocNavMesh() else {
             throw NavMeshError.alloc
@@ -95,6 +102,11 @@ public class NavMesh {
     }
     
     /// Creates a new crowd controlling system
+    ///
+    /// - Parameters:
+    ///   - maxAgents: The maximum number of agents the crowd can manage.
+    ///   - agentRadius: The maximum radius of any agent that will be added to the crowd.
+    /// - Returns: A crowd object that can manage the crowd on this mesh
     public func makeCrowd (maxAgents: Int, agentRadius: Float) throws -> Crowd {
         try Crowd (maxAgents: Int32 (maxAgents), agentRadius: agentRadius, nav: self)
     }

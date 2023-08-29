@@ -25,6 +25,7 @@ struct BindingBulkResult *bindingRunBulk(rcConfig *cfg, int flags, const float* 
     rcPolyMeshDetail *detail_mesh = nullptr;
     rcContext ctx;
 
+    if (false) 
     {
         unlink ("/tmp/imported.obj");
         FILE *o = fopen ("/tmp/imported.obj", "w");
@@ -191,7 +192,7 @@ struct BindingBulkResult *bindingRunBulk(rcConfig *cfg, int flags, const float* 
     result->poly_mesh = poly_mesh;
     result->poly_mesh_detail = detail_mesh;
     if (poly_mesh->nverts == 0) {
-        printf ("oops");
+        printf ("poly_mesh returned zero vertices, not good");
     }
 #if false
     {
@@ -310,57 +311,40 @@ bindingGenerateDetour (BindingBulkResult *data, float agentHeight, float agentRa
 }
 
 // Returns the floats in SIMD3<Float> format, with one padding float at the end
-BindingVertsAndTriangles
-extractVertsAndTriangles (const BindingBulkResult *bbr)
+BindingVertsAndTriangles *
+bindingExtractVertsAndTriangles (const BindingBulkResult *bbr)
 {
     rcPolyMesh *pmesh = bbr->poly_mesh;
-    BindingVertsAndTriangles ret = {
-        .npolys = 0,
-        .nverts = 0,
-        .triangles = NULL,
-        .verts = NULL
-    };
+    BindingVertsAndTriangles *ret = (BindingVertsAndTriangles *) calloc(1, sizeof (BindingVertsAndTriangles));
     
     // First allocate the vertices and faces - the faces need two iterations to
     // allocate the right size array.
     float *verts = (float *) calloc (bbr->poly_mesh->nverts*4, sizeof(float));
     if (verts == NULL) {
-        return ret;
+        freeVertsAndTriangles(ret);
+        return NULL;
     }
-    ret.verts = verts;
-    ret.nverts = bbr->poly_mesh->nverts;
+    ret->verts = verts;
+    ret->nverts = bbr->poly_mesh->nverts;
     const int npolys = pmesh->npolys;
     const int nvp = pmesh->nvp;
-    struct BindingTriangle *trisArray = (struct BindingTriangle *) calloc (npolys, sizeof(struct BindingTriangle));
-    if (trisArray == NULL) {
-        free (verts);
-        ret.verts = NULL;
-        return ret;
-    }
-    printf ("trisArray at %\n", trisArray);
+    int ntris = 0;
     for (int i = 0; i < npolys; ++i){
         int items = 0;
         const unsigned short* p = &pmesh->polys[i*nvp*2];
         for (int j = 2; j < nvp; ++j){
             if (p[j] == RC_MESH_NULL_IDX)
                 break;
-            items++;
-        }
-        trisArray [i].count = items*3;
-        trisArray [i].data = (uint32_t *) calloc (items * 3, sizeof (uint32_t));
-        printf ("trisArray[%d] contains %d items at %p\n", i, items, trisArray [i].data);
-        if (trisArray [i].data == NULL){
-            free (verts);
-            for (int r = 0; r < i; r++){
-                free (trisArray [r].data);
-            }
-            free (trisArray);
-            return ret;
+            ntris += 3;
         }
     }
-
-    ret.triangles = trisArray;
-    ret.npolys = npolys;
+    uint32_t *trisArray = (uint32_t *) calloc (ntris, sizeof(uint32_t));
+    if (trisArray == NULL) {
+        freeVertsAndTriangles(ret);
+        return NULL;
+    }
+    ret->triangles = trisArray;
+    ret->ntris = ntris;
 
     // Now extract the vertices and triangle information
     const float cs = pmesh->cs;
@@ -377,17 +361,29 @@ extractVertsAndTriangles (const BindingBulkResult *bbr)
         verts [k++] = 0;
     }
     
+    k = 0;
     for (int i = 0; i < npolys; ++i){
         const unsigned short* p = &pmesh->polys[i*nvp*2];
-        struct BindingTriangle *t = &ret.triangles [i];
-        k = 0;
         for (int j = 2; j < nvp; ++j){
             if (p[j] == RC_MESH_NULL_IDX)
                 break;
-            t->data [k++] = p[0];
-            t->data [k++] = p[j-1];
-            t->data [k++] = p[j];
+            trisArray [k++] = p[0];
+            trisArray [k++] = p[j-1];
+            trisArray [k++] = p[j];
         }
     }
     return ret;
+}
+
+void
+freeVertsAndTriangles (BindingVertsAndTriangles *data) {
+    if (data->verts){
+        free (data->verts);
+        data->verts = NULL;
+    }
+    if (data->triangles){
+        free (data->triangles);
+        data->triangles = NULL;
+    }
+    free (data);
 }

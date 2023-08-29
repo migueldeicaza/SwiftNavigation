@@ -12,11 +12,18 @@ import RealityKit
 #endif
 
 /// Creates a navigational mesh based on a geometry provided by vertices and triangles
-///
+/// 
 /// The constructor takes both your data and a configuration object with various settings
 /// that describe the kind of mesh that you want to create.   The configuration object
 /// contains various defaults already set which should work for most situations.
-///
+/// 
+/// Once the ``NavMeshBuilder`` is constructed, you can:
+/// 
+/// - Serialize the computed mesh for future use by calling ``makeNavigationBlob(agentHeight:agentRadius:agentMaxClimb:)``
+/// which returns a ``Data`` object suitable for saving or transferring.
+/// - Create a ``NavMesh`` that you can use to place object, query for paths and to use with the Crowd API.
+/// - On platforms with RealityKit, you can get a``MeshResource`` that represents the navigation mesh using
+/// ``getMeshResource()``.
 public class NavMeshBuilder {
     /// The possible styles for partitioning the heightfield
     public enum PartitionStyle: Int32 {
@@ -409,6 +416,8 @@ public class NavMeshBuilder {
     }
     
     /// Creates a new Navmesh from an array of vertices and a configuration
+    ///
+    /// This constructor can throw an error if there is a problem creating the navigation mesh.
     /// - Parameters:
     ///  - vertices: an array of vertices
     ///  - triangles: triangle index array
@@ -421,14 +430,24 @@ public class NavMeshBuilder {
     // Low-level data return by the bulk mesh generation api.
     var llData: UnsafeMutablePointer<BindingBulkResult>
     
-    /// Creates a new Navmesh from an array of vertices and a configuration
+    /// The minimum boundary that this builder is working from, this is either what the user passed on the Config parameter to the constructor, or the computed value based on the vertices.
+    public let boundaryMin: SIMD3<Float>
+    /// The maximum boundary that this builder is working from, this is either what the user passed on the Config parameter to the constructor, or the computed value based on the vertices.
+    public let boundaryMax: SIMD3<Float>
+    
+    /// The voxel width (it is either what was specified in the ``Config`` object, or what was computed based )
+    public let voxelWidth: Int32
+    /// The voxel width (it is either what was specified in the ``Config`` object, or what was computed based )
+    public let voxelHeight: Int32
+
+    /// Creates a new Navmesh from an array of vertices and a configuration.
+    ///
     /// - Parameters:
     ///  - vertices: an array of floating point values that contain 3 floating point values per vertix (x, y, z)
     ///  - triangles: triangle index array
     ///  - config: configuration for the creation of this mesh
     ///  - debug: whether you want to run in debug mode or not, debug will enable logging and timers
-    public init (vertices: [Float], triangles: [Int32], config: Config, debug: Bool = true) throws {
-        let bmin, bmax: SIMD3<Float>
+    public init (vertices: [Float], triangles: [Int32], config: Config, debug: Bool = false) throws {
         
         if config.bmin == nil || config.bmax == nil {
             var minBounds = SIMD3<Float> ()
@@ -447,11 +466,14 @@ public class NavMeshBuilder {
                     }
                 }
             }
-            bmin = minBounds
-            bmax = maxBounds
+            boundaryMin = minBounds
+            boundaryMax = maxBounds
         } else {
-            bmin = config.bmin!
-            bmax = config.bmax!
+            boundaryMin = config.bmin!
+            boundaryMax = config.bmax!
+        }
+        if debug {
+            print ("Boundaries are \(boundaryMin), \(boundaryMax)")
         }
         
         var cfg = rcConfig (width: config.width ?? 0,
@@ -460,8 +482,8 @@ public class NavMeshBuilder {
                             borderSize: config.borderSize ?? (config.walkableRadius + 3),
                             cs: config.cellSize,
                             ch: config.cellHeight,
-                            bmin: (bmin.x, bmin.y, bmin.z),
-                            bmax: (bmax.x, bmax.y, bmax.z),
+                            bmin: (boundaryMin.x, boundaryMin.y, boundaryMin.z),
+                            bmax: (boundaryMax.x, boundaryMax.y, boundaryMax.z),
                             walkableSlopeAngle: config.walkableSlopeAngle,
                             walkableHeight: config.walkableHeight,
                             walkableClimb: config.walkableClimb,
@@ -486,6 +508,11 @@ public class NavMeshBuilder {
                 }
             }
         }
+        voxelWidth = cfg.width
+        voxelHeight = cfg.height
+        if debug {
+            print ("Grid size is: width=\(cfg.width), height=\(cfg.height)")
+        }
         var flags: Int32 = 0
         switch config.partitionStyle {
         case .watershed:
@@ -499,12 +526,16 @@ public class NavMeshBuilder {
         flags |= config.filterLowHangingObstables ? Int32 (FILTER_LOW_HANGING_OBSTACLES) : 0
         flags |= config.filterWalkableLowHeightSpans ? Int32 (FILTER_WALKABLE_LOW_HEIGHT_SPANS) : 0
         
+        let start = Date()
         let ret = vertices.withUnsafeBufferPointer { ptr in
             ptr.withMemoryRebound(to: Float.self) { vertPtr in
                 triangles.withUnsafeBufferPointer { trianglePtr in
                     bindingRunBulk (&cfg, flags, vertPtr.baseAddress, Int32 (vertices.count/3), trianglePtr.baseAddress, Int32(triangles.count/3))
                 }
             }
+        }
+        if debug {
+            print ("Time: \(Date().timeIntervalSince(start))")
         }
         guard let ret else {
             throw NavmeshError.memory
@@ -546,7 +577,11 @@ public class NavMeshBuilder {
     }
     
     #if canImport(RealityKit)
-    public convenience init(model: ModelComponent, config: Config, debug: Bool = true) throws {
+    ///
+    /// Creates a ``NavMeshBuilder`` from a RealityKit ``ModelComponent``
+    ///
+    /// This constructor extracts the vertices and triangle information from a RealityKit ``ModelComponent``.
+    public convenience init(model: ModelComponent, config: Config, debug: Bool = false) throws {
         var floatArray: [Float] = []
         var triangles: [Int32] = []
         for model in model.mesh.contents.models {
@@ -585,6 +620,11 @@ public class NavMeshBuilder {
     
     /// Returns a representation suitable for navigation, but also to be stored on disk
     /// or transferred
+    /// - Parameters:
+    ///   - agentHeight: The size for the agent that will navigate this mesh
+    ///   - agentRadius: The radius for the agent that will navigate this mesh
+    ///   - agentMaxClimb: The maximum number of degrees the agent can climb on this mesh
+    /// - Returns: A data blob suitable to be stored or used to construct an instance of ``NavMesh``.
     public func makeNavigationBlob (agentHeight: Float, agentRadius: Float, agentMaxClimb: Float) throws -> Data {
         var ptr: UnsafeMutableRawPointer?
         var size: Int32 = 0
@@ -609,6 +649,12 @@ public class NavMeshBuilder {
     }
 
     @available(macOS 13.3.0, *)
+    /// Creates a ``NavMesh`` assuming the specified agent dimensions and parameters
+    /// - Parameters:
+    ///   - agentHeight: The size for the agent that will navigate this mesh
+    ///   - agentRadius: The radius for the agent that will navigate this mesh
+    ///   - agentMaxClimb: The maximum number of degrees the agent can climb on this mesh
+    /// - Returns: The ``NavMesh`` object that you can use to query for locations, do path finding or unleash your crowd on.
     public func makeNavMesh (agentHeight: Float, agentRadius: Float, agentMaxClimb: Float) throws -> NavMesh {
         var ptr: UnsafeMutableRawPointer?
         var size: Int32 = 0
@@ -633,12 +679,17 @@ public class NavMeshBuilder {
     }
 
     #if canImport(RealityKit)
-    public func getMeshResourceEntities () throws -> [MeshResource] {
+    /// Returns the computed polygon mesh that is suitable for navigation as a MeshResource, useful
+    /// for debugging.
+    public func getMeshResource () throws -> MeshResource {
         guard var mesh = llData.pointee.poly_mesh else {
-            throw NavmeshError.invalidDetailPolyMesh
+            throw NavmeshError.allocPolyMesh
         }
     
-        let vat = extractVertsAndTriangles(llData)
+        guard let pvat = bindingExtractVertsAndTriangles(llData) else {
+            throw NavmeshError.allocPolyMesh
+        }
+        let vat = pvat.pointee
         var positions: [SIMD3<Float>] = Array (repeating: [0, 0, 0], count: Int (vat.nverts))
         var normals: [SIMD3<Float>] = Array (repeating: [0, 0, 0], count: Int (vat.nverts))
         
@@ -650,85 +701,20 @@ public class NavMeshBuilder {
             }
         }
     
-        var polys: [[UInt32]] = []
-        
-        vat.triangles.withMemoryRebound(to: BindingTriangle.self, capacity: Int(vat.npolys)) { bt in
-            for tidx in 0..<Int(vat.npolys) {
-                let tcount = Int (bt [tidx].count)
-                var triangle: [UInt32] = Array.init (repeating: 0, count: tcount)
-                
-                bt [Int(tidx)].data.withMemoryRebound(to: UInt32.self, capacity: tcount) { data in
-                    for x in 0..<tcount {
-                        let v = data [x]
-                        triangle [x] = v
-                    }
-                }
-                polys.append (triangle)
+        let ntris = Int(vat.ntris)
+        var triangles: [UInt32] = Array.init (repeating: 0, count: ntris)
+        vat.triangles.withMemoryRebound(to: UInt32.self, capacity: ntris) { tPtr in
+            for tidx in 0..<ntris {
+                triangles [tidx] = tPtr [tidx]
             }
         }
 
-        var meshes: [MeshResource] = []
-        
-        for triangles in polys {
-            var descriptor = MeshDescriptor()
-            descriptor.positions = MeshBuffer(positions)
-            descriptor.normals = MeshBuffer(normals)
-            descriptor.primitives = .triangles(triangles)
-            meshes.append (try MeshResource.generate(from: [descriptor]))
-            
-            
-        }
-        return meshes
-    }
-    
-    public func getDetailMeshResource () throws -> MeshResource {
-        guard var mesh = llData.pointee.poly_mesh else {
-            throw NavmeshError.invalidDetailPolyMesh
-        }
-    
-        let vat = extractVertsAndTriangles(llData)
-        var positions: [SIMD3<Float>] = Array (repeating: [0, 0, 0], count: Int (vat.nverts))
-        var normals: [SIMD3<Float>] = Array (repeating: [0, 0, 0], count: Int (vat.nverts))
-        
-        vat.verts.withMemoryRebound(to: SIMD3<Float>.self, capacity: Int (vat.nverts)) { vertPtr in
-            for i in 0..<Int(vat.nverts) {
-                let vec = vertPtr [i]
-                positions [i] = vec
-                normals [i] = normalize(vec)
-            }
-        }
-    
-        var polys: [[UInt32]] = []
-        
-        vat.triangles.withMemoryRebound(to: BindingTriangle.self, capacity: Int(vat.npolys)) { bt in
-            for tidx in 0..<Int(vat.npolys) {
-                let tcount = Int (bt [tidx].count)
-                var triangle: [UInt32] = Array.init (repeating: 0, count: tcount)
-                
-                bt [Int(tidx)].data.withMemoryRebound(to: UInt32.self, capacity: tcount) { data in
-                    for x in 0..<tcount {
-                        let v = data [x]
-                        triangle [x] = v
-                    }
-                }
-                polys.append (triangle)
-            }
-        }
-
-        var descriptors: [MeshDescriptor] = []
-        for triangles in polys {
-            
-            var descriptor = MeshDescriptor()
-            descriptor.positions = MeshBuffer(positions)
-            descriptor.normals = MeshBuffer(normals)
-            descriptor.primitives = .triangles(triangles)
-            
-            descriptors.append (descriptor)
-        }
-        
-        print ("TODO: Release the binding buffers (in the temporary we used to return the data)")
-
-        return try MeshResource.generate(from: descriptors)
+        var descriptor = MeshDescriptor()
+        descriptor.positions = MeshBuffer(positions)
+        descriptor.normals = MeshBuffer(normals)
+        descriptor.primitives = .triangles(triangles)
+        freeVertsAndTriangles(pvat)
+        return try MeshResource.generate(from: [descriptor])
     }
     #endif
     

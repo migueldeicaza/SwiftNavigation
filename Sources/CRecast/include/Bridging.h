@@ -54,17 +54,15 @@ struct BindingBulkResult *bindingRunBulk(rcConfig *config, int flags, const floa
 void bindingRelease (BindingBulkResult *data);
 BDetourStatus bindingGenerateDetour (BindingBulkResult *data, float agentHeight, float agentRadius, float agentMaxclimb, void **result, int *result_size);
 
-struct BindingTriangle {
-    int count;
-    uint32_t *data;
-};
-
 struct BindingVertsAndTriangles {
     int nverts;
-    int npolys;
+    int ntris;
     float *verts;
-    struct BindingTriangle *triangles;
+    uint32_t *triangles;
 };
 
-struct BindingVertsAndTriangles extractVertsAndTriangles (const BindingBulkResult *bbr);
+struct BindingVertsAndTriangles *bindingExtractVertsAndTriangles (const BindingBulkResult *bbr);
+void freeVertsAndTriangles (BindingVertsAndTriangles *data);
+
+
 #endif
