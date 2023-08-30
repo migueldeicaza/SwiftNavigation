@@ -12,8 +12,9 @@ import CRecast
 ///
 /// Agents are created by calling one of ``Crowd``'s `addAgent` methods.
 ///
-/// After the agent has been created, the configuration of the agent can be updated individually
-/// with one of the various `set` methods in this class or in bulk by accessing the ``param`` property.
+/// After the agent has been created, the configuration of the agent can be updated by changing the
+/// ``param`` property that contains a structure with all the configuration parameters.  As a
+/// convenience, individual properties are provided for quick changes.
 ///
 /// The convenience ``set(navigationQuality:)`` and ``set(navigationPushiness:)`` can help
 /// you use various presets that affect the navigation quality and pushiness in one go.
@@ -50,77 +51,105 @@ public class CrowdAgent: CustomDebugStringConvertible {
         }
     }
     
-    /// Sets the agent maximum acceleration, a convenience over setting all the parameters
-    public func set (maxAcceleration: Float) {
-        if maxAcceleration >= 0 {
-            let c = crowd.crowd
-            let r = dtCrowdGetAgent(c, idx)!
-            var copy = r.params
-            copy.maxAcceleration = maxAcceleration
-            c.updateAgentParameters(idx, &copy)
-        }
+    func update (_ body: (inout dtCrowdAgentParams) -> Void) {
+        var copy = dtCrowdGetAgent (crowd.crowd, idx).params
+        body (&copy)
+        crowd.crowd.updateAgentParameters(idx, &copy)
+    }
+    
+    func getParams () -> dtCrowdAgentParams {
+        dtCrowdGetAgent (crowd.crowd, idx).params
+    }
+    
+    /// Agent radius. [Limit: >= 0]
+    ///
+    /// Convenience to change a single parameter.
+    public var radius: Float {
+        get { getParams().radius }
+        set { update { p in p.radius = newValue } }
+    }
+    
+    /// Agent height. [Limit: >= 0]
+    ///
+    /// Convenience to change a single parameter.
+    public var height: Float {
+        get { getParams().height }
+        set { update { p in p.height = newValue } }
     }
 
-    /// Sets the agent maximum speed, a convenience over setting all the parameters
-    public func set (maxSpeed: Float) {
-        if maxSpeed >= 0 {
-            let c = crowd.crowd
-            let r = dtCrowdGetAgent(c, idx)!
-            var copy = r.params
-            copy.maxSpeed = maxSpeed
-            c.updateAgentParameters(idx, &copy)
+    /// Maximum allowed acceleration. [Limit: >= 0]
+    ///
+    /// Convenience to change a single parameter.
+    public var maxAcceleration: Float {
+        get { getParams().maxAcceleration }
+        set { update { p in p.maxAcceleration = newValue } }
+    }
+        
+    /// Maximum allowed speed. [Limit: >= 0]
+    ///
+    /// Convenience to change a single parameter.
+    public var maxSpeed: Float {
+        get { getParams ().maxSpeed }
+        set { 
+            if newValue >= 0 {
+                update { p in p.maxSpeed = newValue }
+            }
         }
     }
     
-    /// Sets the agent radius, a convenience over setting all the parameters
-    public func set (radius: Float) {
-        if radius >= 0 {
-            let c = crowd.crowd
-            let r = dtCrowdGetAgent(c, idx)!
-            var copy = r.params
-            copy.radius = radius
-            c.updateAgentParameters(idx, &copy)
+    /// The query filter type, a convenience over setting all the parameters
+    ///
+    /// Convenience to change a single parameter.
+    public var queryFilterType: UInt8 {
+        get { getParams ().queryFilterType }
+        set { 
+            guard newValue < DT_CROWD_MAX_QUERY_FILTER_TYPE else { return }
+            update { p in p.queryFilterType = newValue }
         }
     }
 
-    /// Sets the agent height, a convenience over setting all the parameters
-    public func set (height: Float) {
-        if height >= 0 {
-            let c = crowd.crowd
-            let r = dtCrowdGetAgent(c, idx)!
-            var copy = r.params
-            copy.radius = height
-            c.updateAgentParameters(idx, &copy)
+    /// The query filter type.
+    ///
+    /// Convenience to change a single parameter.
+    public var obstacleAvoidanceType: Int {
+        get { Int (getParams ().obstacleAvoidanceType) }
+        set { 
+            guard newValue < DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS || newValue >= 0 else { return }
+            update { p in p.obstacleAvoidanceType = UInt8 (obstacleAvoidanceType) }
         }
+    }
+
+    /// Defines how close a collision element must be before it is considered for steering behaviors. [Limits: > 0]
+    ///
+    /// Convenience to change a single parameter.
+    public var collisionQueryRange: Float {
+        get { getParams().collisionQueryRange }
+        set { update { p in p.collisionQueryRange = newValue } }
     }
     
-    /// Sets the query filter type, a convenience over setting all the parameters
-    /// - Parameter queryFilterType: the index of the query filter to use
-    public func set (queryFilterType: UInt8) {
-        guard queryFilterType < DT_CROWD_MAX_QUERY_FILTER_TYPE else { return }
-        let c = crowd.crowd
-        let r = dtCrowdGetAgent(c, idx)!
-        var copy = r.params
-        copy.queryFilterType = queryFilterType
-        c.updateAgentParameters(idx, &copy)
+    /// The path visibility optimization range. [Limit: > 0]
+    ///
+    /// Convenience to change a single parameter.
+    public var pathOptimizationRange: Float {
+        get { getParams().pathOptimizationRange }
+        set { update { p in p.pathOptimizationRange = newValue }}
     }
-
-    /// Sets the query filter type, a convenience over setting all the parameters
-    public func set (obstacleAvoidanceType: Int) {
-        guard obstacleAvoidanceType < DT_CROWD_MAX_OBSTAVOIDANCE_PARAMS || obstacleAvoidanceType >= 0 else { return }
-        let c = crowd.crowd
-        let r = dtCrowdGetAgent(c, idx)!
-        var copy = r.params
-        copy.obstacleAvoidanceType = UInt8 (obstacleAvoidanceType)
-        c.updateAgentParameters(idx, &copy)
+    
+    /// How aggresive the agent manager should be at avoiding collisions with this agent. [Limit: >= 0]
+    public var separationWeight: Float {
+        get { getParams().separationWeight }
+        set { update { p in p.separationWeight = newValue }}
     }
-
+    
+    /// Flags that impact steering behavior
+    public var updateFlags: UpdateFlags {
+        get { UpdateFlags (rawValue: getParams().updateFlags) }
+        set { update { p in p.updateFlags = newValue.rawValue }}
+    }
+    
     /// Sets the navigation quality to one of the presets, these control
     /// the path finding, steering and velocity planning flags from ``UpdateFlags``
     public func set (navigationQuality: NavigationQuality) {
-        let c = crowd.crowd
-        let r = dtCrowdGetAgent(c, idx)!
-        var copy = r.params
         var flags: UInt32 = 0
         switch navigationQuality {
         case .low:
@@ -138,31 +167,28 @@ public class CrowdAgent: CustomDebugStringConvertible {
             | DT_CROWD_SEPARATION.rawValue
             | DT_CROWD_OBSTACLE_AVOIDANCE.rawValue
         }
-        copy.updateFlags = UInt8 (flags)
-        c.updateAgentParameters(idx, &copy)
+        update { p in p.updateFlags = UInt8 (flags) }
     }
 
     /// Sets the navigation pushiness to one of the presets.
     /// The higher the setting, the stronger the agent pushes its colliding neighbours around.
     public func set (navigationPushiness: NavigationPushiness) {
-        let c = crowd.crowd
-        let r = dtCrowdGetAgent(c, idx)!
-        var copy = r.params
-        switch navigationPushiness {
-        case .low:
-            copy.separationWeight = 4
-            copy.collisionQueryRange = copy.radius * 16
-        case .medium:
-            copy.separationWeight = 2
-            copy.collisionQueryRange = copy.radius * 8
-        case .high:
-            copy.separationWeight = 0.5
-            copy.collisionQueryRange = copy.radius
-        case .none:
-            copy.separationWeight = 0
-            copy.collisionQueryRange = copy.radius
+        update { p in
+            switch navigationPushiness {
+            case .low:
+                p.separationWeight = 4
+                p.collisionQueryRange = p.radius * 16
+            case .medium:
+                p.separationWeight = 2
+                p.collisionQueryRange = p.radius * 8
+            case .high:
+                p.separationWeight = 0.5
+                p.collisionQueryRange = p.radius
+            case .none:
+                p.separationWeight = 0
+                p.collisionQueryRange = p.radius
+            }
         }
-        c.updateAgentParameters(idx, &copy)
     }
     
     @discardableResult
@@ -231,6 +257,7 @@ public class CrowdAgent: CustomDebugStringConvertible {
         /// separation weight of 0, collisionQueryRange is radius
         case none
     }
+    
     /// The Crowd agent parameters, when you want to alter those in bulk.
     public struct Params {
         public init(radius: Float, height: Float, maxAcceleration: Float, maxSpeed: Float, collisionQueryRange: Float, pathOptimizationRange: Float, separationWeight: Float, updateFlags: UpdateFlags, obstacleAvoidanceType: UInt8, queryFilterType: UInt8, userData: UnsafeMutableRawPointer!){
