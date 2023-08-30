@@ -103,21 +103,21 @@ public class Crowd {
         return ObstacleAvoidanceConfig(velocitySelectionBias: r.velBias, desiredVelocityWeight: r.weightDesVel, currentVelocityWeight: r.weightCurVel, preferredSideWeight: r.weightSide, collisionTimeWeight: r.weightToi, timeHorizon: r.horizTime, samplingGridSize: r.gridSize, adaptiveDivs: r.adaptiveDivs, adaptiveRings: r.adaptiveRings, adaptiveDepth: r.adaptiveDepth)
     }
     
-    /// Adds a new agent to the crowd
+    /// Adds a new agent to the crowd, convenience function that takes many optional arguments and default to some suitable values
     /// - Parameters:
     ///   - position: Requested position for the agent.
-    ///   - radius: agent radius.
-    ///   - height: agent height.
-    ///   - maxAcceleration: Maximum allowed acceleration.
-    ///   - maxSpeed: Maximum allowed speed.
+    ///   - radius: agent radius, defaults to 0.6.
+    ///   - height: agent height, defaults to 2.0.
+    ///   - maxAcceleration: Maximum allowed acceleration, defaults to 8.
+    ///   - maxSpeed: Maximum allowed speed, defaults to 3.5
     ///   - collisionQueryRange: Defines how close a collision element must be before it is considered for steering behaviors.
     ///     If this value is not provided, then it is computed as `radius * 12`
     ///   - pathOptimizationRange: The path visibility optimization range.
     ///     If this value is not provided, then it is computed as `radius * 30`
-    ///   - updateFlags: Flags that impact steering behavior
+    ///   - updateFlags: Flags that impact steering behavior, defaults to none.
     ///   - obstableAvoidanceType: The index of the avoidance configuration to use for the agent (set with ``setObstableAvoidance(idx:config:)``
-    ///   - queryFilterIndex: The index of the query filter used by this agent.
-    ///   - separationWeight: How aggresive the agent manager should be at avoiding collisions with this agent.
+    ///   - queryFilterIndex: The index of the query filter used by this agent, defaults to 0.
+    ///   - separationWeight: How aggresive the agent manager should be at avoiding collisions with this agent, defaults to 2.
     /// - Returns: An agent on success, or nil if it was not possible to add the agent
     public func addAgent (_ position: SIMD3<Float>,
                           radius: Float = 0.6,
@@ -126,7 +126,7 @@ public class Crowd {
                           maxSpeed: Float = 3.5,
                           collisionQueryRange: Float? = nil,
                           pathOptimizationRange: Float? = nil,
-                          updateFlags: UpdateFlags = UpdateFlags(rawValue: 0),
+                          updateFlags: CrowdAgent.UpdateFlags = CrowdAgent.UpdateFlags(rawValue: 0),
                           obstableAvoidanceType: UInt8 = 3,
                           queryFilterIndex: UInt8 = 0,
                           separationWeight: Float = 2) -> CrowdAgent? {
@@ -150,7 +150,7 @@ public class Crowd {
         return CrowdAgent (crowd: self, idx: idx)
     }
     
-    /// Adds a new agent to the crowd 
+    /// Adds a new agent to the crowd using a configuration structure with the initial parameters
     /// - Parameters:
     ///   - position: Requested position for the agent.
     /// - Returns: An agent on success, or nil if it was not possible to add the agent

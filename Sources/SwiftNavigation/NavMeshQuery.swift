@@ -137,14 +137,14 @@ public class NavMeshQuery {
         public static let offMeshConnection = StraightPathFlags (v: DT_STRAIGHTPATH_OFFMESH_CONNECTION)
         
         static var debugDescriptions: [(Self, String)] = [
-               (.start, ".start"),
-               (.end, ".end"),
-               (.offMeshConnection, ".offMeshConnection"),
-           ]
+            (.start, ".start"),
+            (.end, ".end"),
+            (.offMeshConnection, ".offMeshConnection"),
+        ]
 
-           public var description: String {
-               return "[\(Self.debugDescriptions.filter { contains($0.0) }.map { $0.1 }.joined(separator: ","))]"
-           }
+        public var description: String {
+            return "[\(Self.debugDescriptions.filter { contains($0.0) }.map { $0.1 }.joined(separator: ","))]"
+        }
     }
     
     /// Finds the straight path from the start to the end position within the polygon corridor.

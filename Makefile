@@ -1,4 +1,4 @@
-ODOCS=../SwiftNavigationDocs/docs
+ODOCS=/Users/miguel/cvs/SwiftNavigationDocs/docs
 BASECOMMIT=4bc7fc2e3c1fd1b845a1d7b9c739006581add88e
 
 all:
@@ -7,8 +7,9 @@ all:
 	@echo - push-docs: Pushes the existing documentation, requires SwiftNavigationDocs peer checked out
 	@echo - release: Builds an xcframework package, documentation and pushes documentation
 
-build-docs:
-	GENERATE_DOCS=1 swift package --allow-writing-to-directory $(ODOCS) generate-documentation --target SwiftNavigation --disable-indexing --transform-for-static-hosting --hosting-base-path /SwiftNavigation --output-path $(ODOCS) #>& build-docs.log
+build-docs: 
+	sh docscripts/doc.sh
+	(cd /tmp/SwiftNavigation; swift package --allow-writing-to-directory $(ODOCS) generate-documentation --target SwiftNavigation --disable-indexing --transform-for-static-hosting --hosting-base-path /SwiftNavigation --output-path $(ODOCS)) #>& build-docs.log
 
 push-docs:
 	(cd ../SwiftNavigationDocs; git reset --hard $BASECOMMIT; git add docs/* docs/*/*; git commit -m "Import Docs"; git push -f; git prune)
