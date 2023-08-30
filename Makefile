@@ -8,7 +8,7 @@ all:
 	@echo - release: Builds an xcframework package, documentation and pushes documentation
 
 build-docs:
-	GENERATE_DOCS=1 swift package --allow-writing-to-directory $(ODOCS) generate-documentation --target SwiftNavigation --disable-indexing --transform-for-static-hosting --hosting-base-path /SwiftNavigation --output-path $(ODOCS) >& build-docs.log
+	GENERATE_DOCS=1 swift package --allow-writing-to-directory $(ODOCS) generate-documentation --target SwiftNavigation --disable-indexing --transform-for-static-hosting --hosting-base-path /SwiftNavigation --output-path $(ODOCS) #>& build-docs.log
 
 push-docs:
 	(cd ../SwiftNavigationDocs; git reset --hard $BASECOMMIT; git add docs/* docs/*/*; git commit -m "Import Docs"; git push -f; git prune)

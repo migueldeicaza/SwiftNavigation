@@ -111,7 +111,9 @@ public class Crowd {
     ///   - maxAcceleration: Maximum allowed acceleration.
     ///   - maxSpeed: Maximum allowed speed.
     ///   - collisionQueryRange: Defines how close a collision element must be before it is considered for steering behaviors.
+    ///     If this value is not provided, then it is computed as `radius * 12`
     ///   - pathOptimizationRange: The path visibility optimization range.
+    ///     If this value is not provided, then it is computed as `radius * 30`
     ///   - updateFlags: Flags that impact steering behavior
     ///   - obstableAvoidanceType: The index of the avoidance configuration to use for the agent (set with ``setObstableAvoidance(idx:config:)``
     ///   - queryFilterIndex: The index of the query filter used by this agent.
@@ -122,8 +124,8 @@ public class Crowd {
                           height: Float = 2.0,
                           maxAcceleration: Float = 8,
                           maxSpeed: Float = 3.5,
-                          collisionQueryRange: Float = 0.6 * 12,
-                          pathOptimizationRange: Float = 0.6 * 30,
+                          collisionQueryRange: Float? = nil,
+                          pathOptimizationRange: Float? = nil,
                           updateFlags: UpdateFlags = UpdateFlags(rawValue: 0),
                           obstableAvoidanceType: UInt8 = 3,
                           queryFilterIndex: UInt8 = 0,
@@ -133,8 +135,8 @@ public class Crowd {
             height: height,
             maxAcceleration: maxAcceleration,
             maxSpeed: maxSpeed,
-            collisionQueryRange: collisionQueryRange,
-            pathOptimizationRange: pathOptimizationRange,
+            collisionQueryRange: collisionQueryRange ?? radius * 12,
+            pathOptimizationRange: pathOptimizationRange ?? radius * 30,
             separationWeight: separationWeight,
             updateFlags: UInt8 (updateFlags.rawValue),
             obstacleAvoidanceType: obstableAvoidanceType,

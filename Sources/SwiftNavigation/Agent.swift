@@ -23,13 +23,17 @@ import CRecast
 ///
 /// After a time update, the agent's ``position`` and ``velocity`` are updated to reflect the
 /// state of the agent.
-public class CrowdAgent {
+public class CrowdAgent: CustomDebugStringConvertible {
     var crowd: Crowd
     var idx: Int32
     
     init (crowd: Crowd, idx: Int32) {
         self.crowd = crowd
         self.idx = idx
+    }
+    
+    public var debugDescription: String {
+        return "Agent[\(idx)]"
     }
     
     /// This property access the agent parameters, setitng it will update the running parameters.
