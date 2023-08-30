@@ -1,5 +1,5 @@
 ODOCS=/Users/miguel/cvs/SwiftNavigationDocs/docs
-BASECOMMIT=4bc7fc2e3c1fd1b845a1d7b9c739006581add88e
+BASECOMMIT=107dca303f3b786d08e6fad1eb9a73c35f8ec5ef
 
 all:
 	@echo Targets:
@@ -9,10 +9,12 @@ all:
 
 build-docs: 
 	sh docscripts/doc.sh
-	(cd /tmp/SwiftNavigation; swift package --allow-writing-to-directory $(ODOCS) generate-documentation --target SwiftNavigation --disable-indexing --transform-for-static-hosting --hosting-base-path /SwiftNavigation --output-path $(ODOCS)) #>& build-docs.log
+	(cd /tmp/SwiftNavigation; swift package --allow-writing-to-directory $(ODOCS) generate-documentation --target SwiftNavigation --disable-indexing --transform-for-static-hosting --hosting-base-path /SwiftNavigationDocs --output-path $(ODOCS)) #>& build-docs.log
 
 push-docs:
-	(cd ../SwiftNavigationDocs; git reset --hard $BASECOMMIT; git add docs/* docs/*/*; git commit -m "Import Docs"; git push -f; git prune)
+	(cd ../SwiftNavigationDocs; git reset --hard $(BASECOMMIT))
+	make build-docs
+	(cd ../SwiftNavigationDocs; git add docs/* docs/*/*; git commit -m "Import Docs"; git push -f; git prune)
 
 release: check-args build-release build-docs push-docs
 

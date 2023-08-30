@@ -55,12 +55,7 @@ public class NavMeshBuilder {
         case layer
     }
     
-    /// Specifies the configuration parameteres used when creating the navigation mesh.
-    ///
-    /// The is a convenience structure that represents an aggregation of parameters
-    /// used at different stages in the Recast build process. Some
-    /// values are derived during the build process. Not all parameters
-    /// are used for all build processes.
+    /// The configuration parameters that drive the creation of your navigation mesh.
     ///
     /// Units are usually in voxels (vx) or world units (wu).  The units for voxels,
     /// grid size, and cell size are all based on the values of #cs and #ch.
@@ -320,7 +315,7 @@ public class NavMeshBuilder {
         /// Defaults to false
         public var filterLedgeSpans: Bool
         /// Constructs the configuration object, sets the various properties, additional information on meaning of these parameters
-        /// is availale in the property documentation for each one.
+        /// is available in the property documentation for each one.
         ///
         /// - Parameters:
         ///   - width: The width of the field along the x-axis. [Limit: >= 0] [Units: vx].
@@ -334,8 +329,8 @@ public class NavMeshBuilder {
         ///     impact on the borders around internal obstructions.
         ///   - cellSize: The xz-plane cell size to use for fields. [Limit: > 0] [Units: wu]
         ///   - cellHeight: The y-axis cell size to use for fields. [Limit: > 0] [Units: wu]
-        ///   - bmin: The minimum bounds of the field's AABB. [(x, y, z)] [Units: wu].  If specified, they are used instead of the computed versions from the actual vertices array.
-        ///   - bmax: The maximum bounds of the field's AABB. [(x, y, z)] [Units: wu]. If specified, they are used instead of the computed versions from the actual vertices array.
+        ///   - bmin: The minimum bounds of the field's AABB. [Units: wu].  If specified, they are used instead of the computed versions from the actual vertices array.
+        ///   - bmax: The maximum bounds of the field's AABB. [Units: wu]. If specified, they are used instead of the computed versions from the actual vertices array.
         ///   - walkableSlopeAngle: The maximum slope that is considered walkable. [Limits: 0 <= value < 90] [Units: Degrees], defaults to 45.  See the propery
         ///     documentation for additioanl information
         ///   - walkableHeight: Minimum floor to 'ceiling' height that will still allow the floor area to

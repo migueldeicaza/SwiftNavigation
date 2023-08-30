@@ -18,7 +18,7 @@ SwiftNavigation is a Swift binding to the popular [RecastNavigation](https://git
 
 ## Getting Started
 
-- <doc:NavMeshBuilder>
+- <doc:BuildingMesh>
 <!-- - <doc:NavMesh> -->
 <!-- - <doc:Crowd> -->
 
