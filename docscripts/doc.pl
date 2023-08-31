@@ -1,7 +1,7 @@
 while (<>) {
     if (/func / || /init \(/ || / init\(/ || /public var .*{/ || /deinit/) {
 	#print ("Starting new block: $_");
-	if (/public/) {
+	if (/public/ || / init/) {
 	    $public = 1;
 	    print;
 	} else {
