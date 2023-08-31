@@ -102,7 +102,7 @@ public class Crowd {
         }
         return ObstacleAvoidanceConfig(velocitySelectionBias: r.velBias, desiredVelocityWeight: r.weightDesVel, currentVelocityWeight: r.weightCurVel, preferredSideWeight: r.weightSide, collisionTimeWeight: r.weightToi, timeHorizon: r.horizTime, samplingGridSize: r.gridSize, adaptiveDivs: r.adaptiveDivs, adaptiveRings: r.adaptiveRings, adaptiveDepth: r.adaptiveDepth)
     }
-    
+        
     /// Adds a new agent to the crowd, convenience function that takes many optional arguments and default to some suitable values
     /// - Parameters:
     ///   - position: Requested position for the agent.

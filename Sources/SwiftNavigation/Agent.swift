@@ -25,7 +25,8 @@ import CRecast
 /// After a time update, the agent's ``position`` and ``velocity`` are updated to reflect the
 /// state of the agent.
 public class CrowdAgent: CustomDebugStringConvertible {
-    var crowd: Crowd
+    /// The crowd controller for this agent
+    public let crowd: Crowd
     var idx: Int32
     
     init (crowd: Crowd, idx: Int32) {
@@ -260,17 +261,32 @@ public class CrowdAgent: CustomDebugStringConvertible {
     
     /// The Crowd agent parameters, when you want to alter those in bulk.
     public struct Params {
-        public init(radius: Float, height: Float, maxAcceleration: Float, maxSpeed: Float, collisionQueryRange: Float, pathOptimizationRange: Float, separationWeight: Float, updateFlags: UpdateFlags, obstacleAvoidanceType: UInt8, queryFilterType: UInt8, userData: UnsafeMutableRawPointer!){
+        /// Initializes the parameters for a crowd agent
+        /// - Parameters:
+        ///   - radius: agent radius
+        ///   - height: agent height
+        ///   - maxAcceleration: Maximum allowed acceleration, defaults to 8.
+        ///   - maxSpeed: Maximum allowed speed, defaults to 3.5
+        ///   - collisionQueryRange: Defines how close a collision element must be before it is considered for steering behaviors.
+        ///     If this value is not provided, then it is computed as `radius * 12`
+        ///   - pathOptimizationRange: The path visibility optimization range.
+        ///     If this value is not provided, then it is computed as `radius * 30`
+        ///   - separationWeight: How aggresive the agent manager should be at avoiding collisions with this agent, defaults to 2.
+        ///   - updateFlags: Flags that impact steering behavior, defaults to none.
+        ///   - obstacleAvoidanceType: The index of the avoidance configuration to use for the agent (set with ``setObstableAvoidance(idx:config:)``
+        ///   - queryFilterType: The index of the query filter used by this agent, defaults to 0.
+        ///   - userData: additional payload you can use you can set
+        public init(radius: Float, height: Float, maxAcceleration: Float = 8, maxSpeed: Float = 3.5, collisionQueryRange: Float? = nil, pathOptimizationRange: Float? = nil, separationWeight: Float = 2, updateFlags: UpdateFlags = [], obstacleAvoidanceType: UInt8? = nil, queryFilterType: UInt8? = nil, userData: UnsafeMutableRawPointer! = nil){
             self.radius = radius
             self.height = height
             self.maxAcceleration = maxAcceleration
             self.maxSpeed = maxSpeed
-            self.collisionQueryRange = collisionQueryRange
-            self.pathOptimizationRange = pathOptimizationRange
+            self.collisionQueryRange = collisionQueryRange ?? radius * 12
+            self.pathOptimizationRange = pathOptimizationRange ?? radius * 30
             self.separationWeight = separationWeight
             self.updateFlags = updateFlags
-            self.obstacleAvoidanceType = obstacleAvoidanceType
-            self.queryFilterType = queryFilterType
+            self.obstacleAvoidanceType = obstacleAvoidanceType ?? 3
+            self.queryFilterType = queryFilterType ?? 0
             self.userData = userData
         }
         

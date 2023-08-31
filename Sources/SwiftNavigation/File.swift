@@ -1,12 +1,10 @@
 //
-//  File.swift
+//  File 2.swift
 //  
 //
-//  Created by Miguel de Icaza on 8/29/23.
+//  Created by Miguel de Icaza on 8/30/23.
 //
 
 import Foundation
-
-public class PathCorridor {
-    
-}
+#if canImport(RealityKit)
+#endif
