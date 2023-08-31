@@ -47,7 +47,7 @@ public class CrowdSystem: System {
         var crowd: Crowd? = nil
         context.scene.performQuery(Self.query).forEach { entity in
             
-            guard let agentComponent = entity.components [AgentComponent.self] else {
+            guard let agentComponent = entity.components [AgentComponent.self] as? AgentComponent else {
                 return
             }
             let agent = agentComponent.agent
