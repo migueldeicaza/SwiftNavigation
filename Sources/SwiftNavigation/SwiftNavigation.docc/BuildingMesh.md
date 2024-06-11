@@ -1,6 +1,6 @@
-# Creating a Navigation Mesh
+# Getting Started
 
-## What is a Navigation Mesh
+## Navigation Mesh
 
 A navigation mesh is a data structure that represents the walkable
 surfaces of a 3D environment - that is, areas that are suitable for
